@@ -236,4 +236,120 @@
     .avatar-lg {
         @apply inline-flex items-center justify-center overflow-hidden rounded-full bg-neutral-200 h-12 w-12 text-base;
     }
+
+    /* ============================================
+       Article Prose Styles
+       ============================================ */
+
+    .prose-article {
+        @apply text-neutral-800 leading-relaxed;
+    }
+
+    .prose-article > * + * {
+        @apply mt-6;
+    }
+
+    /* Headings */
+    .prose-article h2 {
+        @apply text-2xl font-bold text-neutral-900 mt-12 mb-4 scroll-mt-24;
+    }
+
+    .prose-article h3 {
+        @apply text-xl font-semibold text-neutral-900 mt-8 mb-3 scroll-mt-24;
+    }
+
+    .prose-article h4 {
+        @apply text-lg font-medium text-neutral-900 mt-6 mb-2;
+    }
+
+    /* Paragraphs */
+    .prose-article p {
+        @apply text-base leading-7;
+    }
+
+    /* Links */
+    .prose-article a {
+        @apply text-primary-600 underline underline-offset-2 hover:text-primary-700 transition-colors;
+    }
+
+    /* Lists */
+    .prose-article ul {
+        @apply list-disc pl-6 space-y-2;
+    }
+
+    .prose-article ol {
+        @apply list-decimal pl-6 space-y-2;
+    }
+
+    .prose-article li {
+        @apply text-base leading-7;
+    }
+
+    /* Blockquote */
+    .prose-article blockquote {
+        @apply border-l-4 border-primary-500 bg-primary-50 pl-4 py-3 pr-4 my-6 rounded-r-lg;
+    }
+
+    .prose-article blockquote p {
+        @apply text-neutral-700 italic;
+    }
+
+    /* Inline Code */
+    .prose-article code:not(pre code) {
+        @apply bg-neutral-100 text-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono;
+    }
+
+    /* Pre/Code Block (fallback - x-ui.code-block handles most cases) */
+    .prose-article pre {
+        @apply bg-neutral-900 text-neutral-100 p-4 rounded-xl overflow-x-auto my-6;
+    }
+
+    .prose-article pre code {
+        @apply bg-transparent text-inherit p-0 text-sm font-mono leading-relaxed;
+    }
+
+    /* Images */
+    .prose-article img {
+        @apply rounded-xl my-6 w-full;
+    }
+
+    .prose-article figure {
+        @apply my-8;
+    }
+
+    .prose-article figcaption {
+        @apply text-sm text-neutral-500 text-center mt-3;
+    }
+
+    /* Tables */
+    .prose-article table {
+        @apply w-full border-collapse my-6;
+    }
+
+    .prose-article th {
+        @apply bg-neutral-100 text-left px-4 py-2 font-semibold text-neutral-900 border border-neutral-200;
+    }
+
+    .prose-article td {
+        @apply px-4 py-2 border border-neutral-200;
+    }
+
+    .prose-article tr:hover {
+        @apply bg-neutral-50;
+    }
+
+    /* Horizontal Rule */
+    .prose-article hr {
+        @apply border-t border-neutral-200 my-8;
+    }
+
+    /* Strong / Bold */
+    .prose-article strong {
+        @apply font-semibold text-neutral-900;
+    }
+
+    /* Emphasis / Italic */
+    .prose-article em {
+        @apply italic;
+    }
 }
