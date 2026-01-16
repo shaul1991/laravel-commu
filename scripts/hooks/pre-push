@@ -1,0 +1,99 @@
+#!/bin/bash
+
+# =============================================================================
+# Git Pre-Push Hook
+# Ollama가 실행 중일 때 로컬 CI 검사를 수행합니다.
+# =============================================================================
+
+set -e
+
+# 색상 정의
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 아이콘
+CHECK="✓"
+CROSS="✗"
+ARROW="→"
+
+echo ""
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}  Pre-Push Hook: Local CI Check${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+# Ollama 서비스 확인
+echo -e "\n${ARROW} Ollama 서비스 확인 중..."
+
+if curl -s --connect-timeout 2 http://localhost:11434/api/tags > /dev/null 2>&1; then
+    echo -e "${GREEN}${CHECK} Ollama가 실행 중입니다. 로컬 CI 검사를 수행합니다.${NC}"
+else
+    echo -e "${YELLOW}${ARROW} Ollama가 실행되지 않음. CI 검사를 건너뜁니다.${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    exit 0
+fi
+
+# 프로젝트 루트로 이동
+cd "$(git rev-parse --show-toplevel)"
+
+# 실패 카운터
+FAILED=0
+
+# =============================================================================
+# 1. Code Quality - Pint
+# =============================================================================
+echo -e "\n${ARROW} [1/3] 코드 스타일 검사 (Pint)..."
+
+if ./vendor/bin/pint --test > /dev/null 2>&1; then
+    echo -e "${GREEN}${CHECK} 코드 스타일 통과${NC}"
+else
+    echo -e "${RED}${CROSS} 코드 스타일 실패${NC}"
+    echo -e "${YELLOW}   './vendor/bin/pint' 를 실행하여 수정하세요.${NC}"
+    FAILED=$((FAILED + 1))
+fi
+
+# =============================================================================
+# 2. Unit Tests
+# =============================================================================
+echo -e "\n${ARROW} [2/3] 단위 테스트 실행 중..."
+
+if php artisan test tests/Unit --stop-on-failure > /dev/null 2>&1; then
+    echo -e "${GREEN}${CHECK} 단위 테스트 통과${NC}"
+else
+    echo -e "${RED}${CROSS} 단위 테스트 실패${NC}"
+    echo -e "${YELLOW}   'php artisan test tests/Unit' 로 상세 내용을 확인하세요.${NC}"
+    FAILED=$((FAILED + 1))
+fi
+
+# =============================================================================
+# 3. Architecture Tests
+# =============================================================================
+echo -e "\n${ARROW} [3/3] 아키텍처 테스트 실행 중..."
+
+if php artisan test tests/Architecture --stop-on-failure > /dev/null 2>&1; then
+    echo -e "${GREEN}${CHECK} 아키텍처 테스트 통과${NC}"
+else
+    echo -e "${RED}${CROSS} 아키텍처 테스트 실패${NC}"
+    echo -e "${YELLOW}   'php artisan test tests/Architecture' 로 상세 내용을 확인하세요.${NC}"
+    FAILED=$((FAILED + 1))
+fi
+
+# =============================================================================
+# 결과 출력
+# =============================================================================
+echo -e "\n${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+if [ $FAILED -eq 0 ]; then
+    echo -e "${GREEN}${CHECK} 모든 CI 검사 통과! Push를 진행합니다.${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    exit 0
+else
+    echo -e "${RED}${CROSS} ${FAILED}개의 검사가 실패했습니다. Push가 중단됩니다.${NC}"
+    echo -e "${YELLOW}   문제를 수정한 후 다시 시도하세요.${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    exit 1
+fi

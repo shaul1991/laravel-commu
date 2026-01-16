@@ -52,6 +52,9 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "hooks:install": [
+            "bash scripts/hooks/install.sh"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

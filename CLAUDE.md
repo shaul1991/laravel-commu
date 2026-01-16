@@ -47,6 +47,18 @@ make xdebug-develop  # 향상된 에러 출력
 make xdebug-coverage # 코드 커버리지
 ```
 
+## Git Hooks
+
+```bash
+# Git hooks 설치
+composer hooks:install
+```
+
+**pre-push**: Ollama가 실행 중일 때 push 전 로컬 CI 검사 수행
+- 코드 스타일 (Pint)
+- 단위 테스트
+- 아키텍처 테스트
+
 ## Architecture
 
 - **Routes**: `routes/web.php` (웹), `routes/console.php` (CLI 명령어)
