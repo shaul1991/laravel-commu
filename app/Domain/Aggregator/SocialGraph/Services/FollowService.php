@@ -28,15 +28,14 @@ class FollowService
             throw new CannotFollowSelfException;
         }
 
-        if ($this->followRepository->exists($followerId, $followingId)) {
-            return;
+        // Atomic upsert to avoid TOCTOU race condition
+        $created = $this->followRepository->createIfNotExists($followerId, $followingId);
+
+        if ($created) {
+            $this->eventDispatcher->dispatch(
+                new UserFollowed($followerId, $followingId, new DateTimeImmutable)
+            );
         }
-
-        $this->followRepository->create($followerId, $followingId);
-
-        $this->eventDispatcher->dispatch(
-            new UserFollowed($followerId, $followingId, new DateTimeImmutable)
-        );
     }
 
     public function unfollow(UserId $followerId, UserId $followingId): void

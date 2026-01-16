@@ -10,6 +10,13 @@ interface FollowRepositoryInterface
 {
     public function create(UserId $followerId, UserId $followingId): void;
 
+    /**
+     * Atomically create a follow relationship if it doesn't exist.
+     *
+     * @return bool True if created, false if already existed
+     */
+    public function createIfNotExists(UserId $followerId, UserId $followingId): bool;
+
     public function delete(UserId $followerId, UserId $followingId): void;
 
     public function exists(UserId $followerId, UserId $followingId): bool;

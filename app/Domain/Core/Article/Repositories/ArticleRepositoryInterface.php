@@ -58,4 +58,9 @@ interface ArticleRepositoryInterface
     public function countByStatus(ArticleStatus $status): int;
 
     public function countByAuthor(UserId $authorId): int;
+
+    /**
+     * Count published articles, optionally filtered by category.
+     */
+    public function countPublished(?Category $category = null): int;
 }

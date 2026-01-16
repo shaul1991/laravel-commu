@@ -229,7 +229,7 @@ final class DomainBoundaryTest extends TestCase
     }
 
     /**
-     * 디렉토리 내 PHP 파일 목록 조회
+     * 디렉토리 내 PHP 파일 목록 조회 (RecursiveIterator 사용으로 크로스 플랫폼 호환성 확보)
      */
     private function getPhpFilesInDirectory(string $directory, ?string $subDirectory = null): array
     {
@@ -237,18 +237,29 @@ final class DomainBoundaryTest extends TestCase
             return [];
         }
 
-        $pattern = $subDirectory
-            ? "{$directory}/**/{$subDirectory}/*.php"
-            : "{$directory}/**/*.php";
+        $files = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY
+        );
 
-        $files = glob($pattern, GLOB_BRACE) ?: [];
+        foreach ($iterator as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
 
-        // 재귀적으로 하위 디렉토리 검색
-        if (! $subDirectory) {
-            $additionalFiles = glob("{$directory}/*/*.php") ?: [];
-            $files = array_merge($files, $additionalFiles);
+            $filePath = $file->getPathname();
+
+            if ($subDirectory !== null) {
+                // 특정 서브디렉토리 내 파일만 포함
+                if (str_contains($filePath, DIRECTORY_SEPARATOR.$subDirectory.DIRECTORY_SEPARATOR)) {
+                    $files[] = $filePath;
+                }
+            } else {
+                $files[] = $filePath;
+            }
         }
 
-        return array_unique($files);
+        return $files;
     }
 }

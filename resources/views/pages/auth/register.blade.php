@@ -19,7 +19,9 @@
 
             {{-- Register Form --}}
             <div class="card p-8">
-                <form class="space-y-5" x-data="{ showPassword: false, showConfirmPassword: false }">
+                <form method="POST" action="/register" class="space-y-5" x-data="{ showPassword: false, showConfirmPassword: false }">
+                    @csrf
+
                     {{-- Name --}}
                     <div>
                         <label for="name" class="block text-sm font-medium text-neutral-700 mb-1.5">이름</label>
