@@ -62,8 +62,8 @@ export default defineConfig(({ mode }) => {
         plugins: [
             // ... other plugins
             env.SENTRY_AUTH_TOKEN && sentryVitePlugin({
-                org: env.SENTRY_ORG || 'home-shaul',
-                project: env.SENTRY_PROJECT || 'laravel-commu',
+                org: env.SENTRY_ORG,
+                project: env.SENTRY_PROJECT,
                 authToken: env.SENTRY_AUTH_TOKEN,
                 url: env.SENTRY_URL,
                 sourcemaps: {
