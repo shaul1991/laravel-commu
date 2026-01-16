@@ -73,7 +73,7 @@
     {{-- Copy Link --}}
     <button
         @click="
-            navigator.clipboard.writeText('{{ $url }}');
+            navigator.clipboard.writeText(@js($url));
             copied = true;
             setTimeout(() => copied = false, 2000);
         "

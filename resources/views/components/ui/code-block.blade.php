@@ -42,7 +42,7 @@
                 copied = true;
                 setTimeout(() => copied = false, 2000);
             "
-            class="rounded p-1.5 text-neutral-400 transition-all hover:bg-neutral-700 hover:text-white opacity-0 group-hover:opacity-100"
+            class="rounded p-1.5 text-neutral-400 transition-all hover:bg-neutral-700 hover:text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100"
             :class="{ 'text-green-400 hover:text-green-400': copied }"
             :title="copied ? '복사됨!' : '코드 복사'"
             aria-label="코드 복사"
