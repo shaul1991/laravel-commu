@@ -26,7 +26,9 @@ RUN docker-php-ext-install -j$(nproc) \
 
 # ==========================================
 # PECL 확장 설치
-# - redis: 캐시, 세션, 큐 드라이버
+# - redis: phpredis 확장 (선택적, predis 사용 시 불필요)
+#          기본값: predis (pure PHP, composer.json에 포함)
+#          성능 최적화 시: REDIS_CLIENT=phpredis 설정
 # - mongodb: MongoDB 연결
 # - xdebug: 디버깅 (IDE 연동)
 # - excimer: Sentry 프로파일링
