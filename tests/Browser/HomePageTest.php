@@ -2,9 +2,9 @@
 
 namespace Tests\Browser;
 
+use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\DuskTestCase;
-use Laravel\Dusk\Browser;
 
 /**
  * Tech Blog - 메인 페이지 UI 테스트

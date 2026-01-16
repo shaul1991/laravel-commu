@@ -2,9 +2,9 @@
 
 namespace Tests\Browser;
 
+use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\DuskTestCase;
-use Laravel\Dusk\Browser;
 
 /**
  * 반응형 레이아웃 테스트 - Tech Blog

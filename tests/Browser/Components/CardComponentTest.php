@@ -2,9 +2,9 @@
 
 namespace Tests\Browser\Components;
 
+use Laravel\Dusk\Browser;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\DuskTestCase;
-use Laravel\Dusk\Browser;
 
 /**
  * Card 컴포넌트 테스트 - Tech Blog

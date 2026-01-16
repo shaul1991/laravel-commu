@@ -18,7 +18,7 @@ return [
 
     // The release version of your application
     // CalVer + Git hash: YYYY.MM.{hash} 형식
-    'release' => env('SENTRY_RELEASE', date('Y.m') . '.' . trim(exec('git --git-dir ' . base_path('.git') . ' log --pretty="%h" -n1 HEAD'))),
+    'release' => env('SENTRY_RELEASE', date('Y.m').'.'.trim(exec('git --git-dir '.base_path('.git').' log --pretty="%h" -n1 HEAD'))),
 
     // When left empty or `null` the Laravel environment will be used (usually discovered from `APP_ENV` in your `.env`)
     'environment' => env('SENTRY_ENVIRONMENT'),
