@@ -13,7 +13,7 @@ final class Email extends ValueObject
         private readonly string $value
     ) {
         if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidEmailException($value);
+            throw new InvalidEmailException;
         }
     }
 

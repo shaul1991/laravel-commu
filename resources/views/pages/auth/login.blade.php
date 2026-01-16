@@ -19,7 +19,9 @@
 
             {{-- Login Form --}}
             <div class="card p-8">
-                <form class="space-y-6" x-data="{ showPassword: false }">
+                <form method="POST" action="/login" class="space-y-6" x-data="{ showPassword: false }">
+                    @csrf
+
                     {{-- Email --}}
                     <div>
                         <label for="email" class="block text-sm font-medium text-neutral-700 mb-1.5">이메일</label>

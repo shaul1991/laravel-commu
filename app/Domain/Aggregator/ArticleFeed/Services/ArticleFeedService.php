@@ -8,7 +8,6 @@ use App\Application\Contracts\CacheInterface;
 use App\Domain\Aggregator\ArticleFeed\DTOs\ArticleFeedDTO;
 use App\Domain\Aggregator\ArticleFeed\DTOs\FeedCriteria;
 use App\Domain\Core\Article\Repositories\ArticleRepositoryInterface;
-use App\Domain\Core\Article\ValueObjects\ArticleStatus;
 use App\Domain\Core\Tag\Repositories\TagRepositoryInterface;
 use App\Domain\Core\User\Repositories\UserRepositoryInterface;
 use App\Domain\Core\User\ValueObjects\UserId;
@@ -28,7 +27,7 @@ class ArticleFeedService
     {
         $cacheKey = "feed:{$criteria->hash()}";
 
-        return $this->cache->remember($cacheKey, self::CACHE_TTL, function () use ($criteria) {
+        return $this->cache->tags(['feed'])->remember($cacheKey, self::CACHE_TTL, function () use ($criteria) {
             $articles = $this->articleRepository->findPublished(
                 category: $criteria->category,
                 limit: $criteria->perPage,
@@ -37,7 +36,7 @@ class ArticleFeedService
                 sortOrder: $criteria->sortOrder
             );
 
-            $total = $this->articleRepository->countByStatus(ArticleStatus::PUBLISHED);
+            $total = $this->articleRepository->countPublished($criteria->category);
 
             // Batch load authors
             $authorIds = array_map(fn ($article) => $article->authorId(), $articles);

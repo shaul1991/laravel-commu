@@ -73,7 +73,10 @@
                     <div x-show="tab === 'profile'" class="card p-6">
                         <h2 class="text-lg font-bold text-neutral-900 mb-6">프로필 정보</h2>
 
-                        <form class="space-y-6">
+                        <form method="POST" action="/settings/profile" @submit.prevent="$el.submit()" class="space-y-6">
+                            @csrf
+                            @method('PATCH')
+
                             {{-- Avatar --}}
                             <div>
                                 <label class="block text-sm font-medium text-neutral-700 mb-2">프로필 사진</label>
@@ -142,7 +145,10 @@
                     <div x-show="tab === 'account'" x-cloak class="card p-6">
                         <h2 class="text-lg font-bold text-neutral-900 mb-6">계정 정보</h2>
 
-                        <form class="space-y-6">
+                        <form method="POST" action="/settings/account" @submit.prevent="$el.submit()" class="space-y-6">
+                            @csrf
+                            @method('PATCH')
+
                             {{-- Email --}}
                             <div>
                                 <label for="email" class="block text-sm font-medium text-neutral-700 mb-1.5">이메일</label>
@@ -226,7 +232,10 @@
                     <div x-show="tab === 'security'" x-cloak class="card p-6">
                         <h2 class="text-lg font-bold text-neutral-900 mb-6">보안 설정</h2>
 
-                        <form class="space-y-6">
+                        <form method="POST" action="/settings/password" @submit.prevent="$el.submit()" class="space-y-6">
+                            @csrf
+                            @method('PUT')
+
                             {{-- Change Password --}}
                             <div>
                                 <h3 class="font-medium text-neutral-900 mb-4">비밀번호 변경</h3>

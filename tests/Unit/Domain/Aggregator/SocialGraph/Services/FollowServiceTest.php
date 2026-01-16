@@ -49,14 +49,9 @@ final class FollowServiceTest extends TestCase
 
         $this->followRepository
             ->expects($this->once())
-            ->method('exists')
+            ->method('createIfNotExists')
             ->with($followerId, $followingId)
-            ->willReturn(false);
-
-        $this->followRepository
-            ->expects($this->once())
-            ->method('create')
-            ->with($followerId, $followingId);
+            ->willReturn(true);
 
         $this->eventDispatcher
             ->expects($this->once())
@@ -74,13 +69,9 @@ final class FollowServiceTest extends TestCase
 
         $this->followRepository
             ->expects($this->once())
-            ->method('exists')
+            ->method('createIfNotExists')
             ->with($followerId, $followingId)
-            ->willReturn(true);
-
-        $this->followRepository
-            ->expects($this->never())
-            ->method('create');
+            ->willReturn(false);
 
         $this->eventDispatcher
             ->expects($this->never())

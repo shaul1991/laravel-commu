@@ -10,6 +10,7 @@ abstract class ValueObject
 
     public function equals(ValueObject $other): bool
     {
-        return $this->value() === $other->value();
+        return $this::class === $other::class
+            && $this->value() === $other->value();
     }
 }
