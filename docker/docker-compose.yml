@@ -24,6 +24,7 @@ services:
     volumes:
       - ../:/var/www/html
       - ./was/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+      - ./was/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini:ro
       - ./was/supervisord.conf:/etc/supervisord.conf:ro
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
