@@ -2,6 +2,7 @@
 .DS_Store
 .env
 .env.backup
+.env.develop
 .env.production
 .claude/*.local.md
 docker/.env
