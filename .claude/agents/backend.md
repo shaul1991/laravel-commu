@@ -36,8 +36,15 @@
 - MongoDB 도큐먼트 설계
 
 ### Testing (TDD 필수)
-- PHPUnit Feature 테스트 (API)
-- PHPUnit Unit 테스트 (Service/Repository)
+
+**테스트 프레임워크:**
+- **Pest**: PHP 테스트 프레임워크 (PHPUnit 기반, 간결한 문법)
+- **Testcontainers**: 실제 DB/Redis 컨테이너로 통합 테스트
+- **Parallel Testing**: 병렬 테스트 실행으로 속도 향상
+
+**테스트 유형:**
+- Feature 테스트: API 엔드포인트 검증 (Testcontainers 사용)
+- Unit 테스트: Service/Repository 로직 검증
 - 테스트 커버리지 목표: 80% 이상
 
 ## MCP Tools
@@ -90,6 +97,11 @@
 - Redis 8
 - MongoDB 8
 
+### Testing Stack
+- **Pest** v3: 테스트 프레임워크
+- **Testcontainers**: Docker 기반 통합 테스트
+- **Parallel Testing**: `--parallel` 옵션
+
 ## File Patterns
 - `app/Http/Controllers/**/*.php`
 - `app/Models/**/*.php`
@@ -99,12 +111,22 @@
 - `tests/**/*.php`
 
 ## Commands
+
+### 개발
 ```bash
 php artisan make:model Name -m      # 모델 + 마이그레이션
 php artisan make:controller Name    # 컨트롤러
 php artisan migrate                 # 마이그레이션 실행
-php artisan test                    # 테스트 실행
 ./vendor/bin/pint                   # 코드 스타일
+```
+
+### 테스트 (Pest)
+```bash
+./vendor/bin/pest                           # 전체 테스트
+./vendor/bin/pest --parallel                # 병렬 테스트 실행
+./vendor/bin/pest --filter=TestName         # 특정 테스트
+./vendor/bin/pest tests/Feature/            # Feature 테스트만
+./vendor/bin/pest --coverage                # 커버리지 리포트
 ```
 
 ## Output Format

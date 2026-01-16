@@ -5,11 +5,15 @@
 ## Tech Stack
 - PHP 8.4
 - Laravel 12
-- PHPUnit (테스트)
 - Sentry SDK (에러 추적)
 - PostgreSQL (메인 DB)
 - Redis (캐시/세션/큐)
 - MinIO (S3 호환 스토리지)
+
+### Testing Stack
+- **Pest v3**: PHP 테스트 프레임워크 (간결한 문법, PHPUnit 호환)
+- **Testcontainers**: Docker 기반 실제 DB/Redis 통합 테스트
+- **Parallel Testing**: 병렬 테스트 실행 (`--parallel`)
 
 ## Development Methodology
 
@@ -85,9 +89,76 @@ Red → Green → Refactor
 ## Test Structure
 ```
 tests/
-├── Feature/           # API 테스트 (TDD 진입점)
+├── Feature/           # API 테스트 (TDD 진입점, Testcontainers)
 │   └── XxxTest.php   # HTTP 요청/응답 검증
-└── Unit/              # 단위 테스트
-    ├── Services/     # 서비스 로직 테스트
-    └── Models/       # 모델 로직 테스트
+├── Unit/              # 단위 테스트
+│   ├── Services/     # 서비스 로직 테스트
+│   └── Models/       # 모델 로직 테스트
+└── Pest.php          # Pest 설정
+```
+
+## Testing Guide
+
+### Pest 문법 (필수)
+```php
+// tests/Feature/UserTest.php
+<?php
+
+uses(Tests\TestCase::class);
+
+describe('User API', function () {
+    it('can create a user', function () {
+        $response = $this->postJson('/api/users', [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson(['name' => 'John Doe']);
+    });
+
+    it('validates required fields', function () {
+        $response = $this->postJson('/api/users', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name', 'email']);
+    });
+});
+```
+
+### Testcontainers 사용 (통합 테스트)
+```php
+// tests/Feature/DatabaseTest.php
+<?php
+
+uses(Tests\TestCase::class);
+uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
+
+describe('Database Integration', function () {
+    it('persists data to PostgreSQL', function () {
+        // Testcontainers가 실제 PostgreSQL 컨테이너 제공
+        $user = User::factory()->create();
+
+        expect(User::find($user->id))->not->toBeNull();
+    });
+});
+```
+
+### 병렬 테스트 실행
+```bash
+# 병렬 테스트 (CPU 코어 수만큼 프로세스 실행)
+./vendor/bin/pest --parallel
+
+# 프로세스 수 지정
+./vendor/bin/pest --parallel --processes=4
+```
+
+### 테스트 명령어
+```bash
+./vendor/bin/pest                           # 전체 테스트
+./vendor/bin/pest --parallel                # 병렬 실행
+./vendor/bin/pest --filter="User"           # 필터링
+./vendor/bin/pest tests/Feature/            # Feature만
+./vendor/bin/pest --coverage                # 커버리지
+./vendor/bin/pest --coverage --min=80       # 최소 커버리지 검증
 ```

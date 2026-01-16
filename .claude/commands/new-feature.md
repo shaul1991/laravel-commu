@@ -11,10 +11,15 @@
 ### TDD (Test-Driven Development) - Backend 필수
 ```
 Red → Green → Refactor
-1. PM/QA 요구사항을 테스트로 작성 (실패)
+1. PM/QA 요구사항을 Pest 테스트로 작성 (실패)
 2. 테스트를 통과시키는 코드 작성
 3. 코드 리팩토링 (테스트 유지)
 ```
+
+### Testing Stack - Backend 필수
+- **Pest**: PHP 테스트 프레임워크 (간결한 문법)
+- **Testcontainers**: 실제 DB/Redis 컨테이너로 통합 테스트
+- **Parallel Testing**: `--parallel` 옵션으로 병렬 실행
 
 ### Documentation Management - Backend 필수
 ```
@@ -75,18 +80,24 @@ git checkout -b feature/$1
 
 **Backend** (`.claude/agents/backend.md`) - TDD 필수:
 
-*TDD 개발 순서:*
-1. PM/QA 요구사항을 Feature 테스트로 작성 (Red)
+*TDD 개발 순서 (Pest 사용):*
+1. PM/QA 요구사항을 Pest Feature 테스트로 작성 (Red)
 2. 테스트 통과를 위한 코드 구현 (Green)
 3. 코드 리팩토링 (Refactor)
 
 *작업 내용:*
 1. API 엔드포인트 설계
 2. DB 스키마 설계
-3. **테스트 먼저 작성** (tests/Feature/)
+3. **Pest 테스트 먼저 작성** (tests/Feature/)
 4. 마이그레이션/모델/컨트롤러 구현
-5. 테스트 통과 확인
+5. 테스트 통과 확인 (`./vendor/bin/pest --parallel`)
 6. Jira Backend Tasks 생성 및 업데이트
+
+*Testing:*
+```bash
+./vendor/bin/pest --parallel           # 병렬 테스트 실행
+./vendor/bin/pest --coverage --min=80  # 커버리지 검증
+```
 
 *Documentation:*
 - 각 티켓 완료 시 `jira_add_comment`로 작업 내용 기록
@@ -189,11 +200,48 @@ Jira: ECS-XX
 3. **Design Agent** → 로그인/회원가입 UI 스펙
 4. **Frontend Agent** → Blade 컴포넌트 Task
 5. **Backend Agent (TDD)**:
-   - 테스트 먼저 작성 (LoginTest, RegisterTest)
-   - Auth API 구현
-   - 테스트 통과 확인
+   - Pest 테스트 먼저 작성 (LoginTest, RegisterTest)
+   - Auth API 구현 (Testcontainers로 DB 검증)
+   - 테스트 통과 확인 (`pest --parallel`)
    - 티켓별 커밋 + Jira 코멘트
 6. **DevOps Agent** → 세션/토큰 설정 Task
 7. **QA Agent** → 인증 테스트 시나리오
 8. **Docs Agent** → 인증 문서 정리
 9. **Git** → PR 생성 또는 merge
+
+### Backend TDD 예시 코드 (Pest)
+```php
+// tests/Feature/Auth/LoginTest.php
+<?php
+
+uses(Tests\TestCase::class);
+uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
+
+describe('Login API', function () {
+    it('로그인 성공 시 토큰을 반환한다', function () {
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'password',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['token']);
+    });
+
+    it('잘못된 비밀번호로 로그인 실패', function () {
+        User::factory()->create(['email' => 'test@example.com']);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertStatus(401);
+    });
+});
+```
