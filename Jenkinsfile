@@ -330,11 +330,11 @@ pipeline {
                             sh /var/www/html/deploy/switch-traffic.sh ${TARGET_PORT}
                     """
 
-                    // Caddy reload (호스트에서 실행)
+                    // Caddy reload (호스트의 systemd 서비스 reload)
+                    // nsenter를 사용하여 호스트 네임스페이스에서 실행
                     sh """
-                        docker exec caddy caddy reload --config /etc/caddy/Caddyfile --force 2>/dev/null || \
-                        systemctl reload caddy 2>/dev/null || \
-                        echo "Warning: Caddy reload failed. Manual reload may be required."
+                        docker run --rm --privileged --pid=host alpine:latest \
+                            nsenter -t 1 -m -u -n -i systemctl reload caddy
                     """
 
                     // 배포 버전 기록
@@ -413,11 +413,10 @@ pipeline {
                             sh /var/www/html/deploy/switch-traffic.sh ${rollbackPort}
                     """
 
-                    // Caddy reload
+                    // Caddy reload (호스트의 systemd 서비스 reload)
                     sh """
-                        docker exec caddy caddy reload --config /etc/caddy/Caddyfile --force 2>/dev/null || \
-                        systemctl reload caddy 2>/dev/null || \
-                        echo "Warning: Caddy reload failed. Manual reload may be required."
+                        docker run --rm --privileged --pid=host alpine:latest \
+                            nsenter -t 1 -m -u -n -i systemctl reload caddy
                     """
 
                     echo "Rolled back to ${rollbackEnv} (port ${rollbackPort})"
