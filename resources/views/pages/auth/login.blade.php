@@ -170,9 +170,23 @@
                             this.form.remember
                         );
 
-                        // Redirect to home or intended page
-                        const redirect = new URLSearchParams(window.location.search).get('redirect');
-                        window.location.href = redirect || '/';
+                        // Redirect to home or intended page (with open-redirect protection)
+                        const urlRedirect = new URLSearchParams(window.location.search).get('redirect');
+                        const sessionRedirect = sessionStorage.getItem('redirect_after_login');
+                        sessionStorage.removeItem('redirect_after_login');
+
+                        const safeRedirect = (url) => {
+                            if (!url || typeof url !== 'string') return '/';
+                            // Reject protocol-relative URLs (//example.com) and URLs with schemes
+                            if (url.startsWith('//') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return '/';
+                            // Allow only relative paths starting with single '/'
+                            if (url.startsWith('/') && !url.startsWith('//')) return url;
+                            return '/';
+                        };
+
+                        window.location.href = safeRedirect(urlRedirect) !== '/'
+                            ? safeRedirect(urlRedirect)
+                            : safeRedirect(sessionRedirect);
                     } catch (e) {
                         if (e.errors) {
                             this.errors = {};
