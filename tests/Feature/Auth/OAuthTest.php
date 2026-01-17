@@ -56,9 +56,7 @@ final class OAuthTest extends TestCase
             ->with('google')
             ->andReturn($driver);
 
-        $response = $this->postJson('/api/auth/oauth/google/callback', [
-            'code' => 'valid-auth-code',
-        ]);
+        $response = $this->get('/api/auth/oauth/google/callback?code=valid-auth-code');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -95,9 +93,7 @@ final class OAuthTest extends TestCase
             ->with('github')
             ->andReturn($driver);
 
-        $response = $this->postJson('/api/auth/oauth/github/callback', [
-            'code' => 'valid-auth-code',
-        ]);
+        $response = $this->get('/api/auth/oauth/github/callback?code=valid-auth-code');
 
         $response->assertOk()
             ->assertJsonPath('data.user.email', 'existing@example.com');
@@ -108,7 +104,7 @@ final class OAuthTest extends TestCase
 
     public function test_콜백에_코드가_없으면_에러가_발생한다(): void
     {
-        $response = $this->postJson('/api/auth/oauth/google/callback', []);
+        $response = $this->getJson('/api/auth/oauth/google/callback');
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['code']);

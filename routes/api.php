@@ -29,7 +29,7 @@ Route::prefix('auth')->group(function () {
 
     // OAuth Routes
     Route::get('/oauth/{provider}/redirect', [OAuthController::class, 'redirect']);
-    Route::post('/oauth/{provider}/callback', [OAuthController::class, 'callback']);
+    Route::get('/oauth/{provider}/callback', [OAuthController::class, 'callback']);
 });
 
 // Article Routes (Public - with optional auth support via controller)
