@@ -178,4 +178,10 @@ export const auth = {
 // Make auth available globally for Alpine.js components
 window.auth = auth;
 
+// Guest-only page redirect: redirect authenticated users to home
+const guestOnlyPaths = ['/login', '/register', '/forgot-password'];
+if (auth.isAuthenticated() && guestOnlyPaths.includes(window.location.pathname)) {
+    window.location.href = '/';
+}
+
 export default auth;
