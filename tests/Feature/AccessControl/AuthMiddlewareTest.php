@@ -16,7 +16,8 @@ use Tests\TestCase;
  * for auth tokens, redirecting unauthenticated users to the login page.
  *
  * These tests verify that the pages are accessible (server returns 200).
- * Client-side redirect behavior is tested via browser tests.
+ *
+ * @see \Tests\Browser\AuthRedirectTest for client-side redirect browser tests
  */
 final class AuthMiddlewareTest extends TestCase
 {
