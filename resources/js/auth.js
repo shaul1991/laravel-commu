@@ -225,4 +225,16 @@ if (auth.isAuthenticated() && guestOnlyPaths.includes(window.location.pathname))
     window.location.href = '/';
 }
 
+// Auth-required page redirect: redirect unauthenticated users to login
+const authRequiredPaths = ['/write', '/settings', '/me/articles'];
+const authRequiredPatterns = [/^\/articles\/[^/]+\/edit$/];
+const currentPath = window.location.pathname;
+const isAuthRequiredPath = authRequiredPaths.includes(currentPath) ||
+    authRequiredPatterns.some(pattern => pattern.test(currentPath));
+
+if (!auth.isAuthenticated() && isAuthRequiredPath) {
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/login?redirect=${returnUrl}`;
+}
+
 export default auth;
