@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OAuthController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,6 +36,17 @@ Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/{slug}', [ArticleController::class, 'show'])
     ->where('slug', '^(?!drafts$)[a-z0-9-]+$');
 
+// Comment Routes (Public)
+Route::get('/articles/{slug}/comments', [CommentController::class, 'index']);
+
+// Search Routes (Public)
+Route::get('/search/articles', [SearchController::class, 'articles']);
+Route::get('/search/users', [SearchController::class, 'users']);
+
+// User Routes (Public)
+Route::get('/users/{username}', [UserController::class, 'show']);
+Route::get('/users/{username}/articles', [UserController::class, 'articles']);
+
 // Auth Routes (Protected)
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
@@ -52,4 +68,32 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Image Upload
     Route::post('/images/upload', [ImageController::class, 'upload']);
+
+    // Comment Routes (Protected)
+    Route::post('/articles/{slug}/comments', [CommentController::class, 'store']);
+    Route::post('/comments/{comment}/replies', [CommentController::class, 'reply']);
+    Route::put('/comments/{comment}', [CommentController::class, 'update']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::post('/comments/{comment}/like', [CommentController::class, 'like']);
+
+    // User Routes (Protected)
+    Route::put('/users/me', [UserController::class, 'updateProfile']);
+    Route::post('/users/{username}/follow', [UserController::class, 'follow']);
+
+    // Settings Routes (Protected)
+    Route::prefix('settings')->group(function () {
+        Route::put('/account/email', [SettingsController::class, 'updateEmail']);
+        Route::put('/account/password', [SettingsController::class, 'updatePassword']);
+        Route::delete('/account', [SettingsController::class, 'deleteAccount']);
+        Route::get('/notifications', [SettingsController::class, 'getNotificationSettings']);
+        Route::put('/notifications', [SettingsController::class, 'updateNotificationSettings']);
+    });
+
+    // Notification Routes (Protected)
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::post('/{notification}/read', [NotificationController::class, 'markAsRead']);
+    });
 });

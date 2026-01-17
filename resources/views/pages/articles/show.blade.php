@@ -372,6 +372,11 @@ ORDER BY seq_scan DESC;</x-ui.code-block>
                         />
                     </div>
                 </section>
+
+                {{-- Comment Section --}}
+                <section class="mx-auto mt-12 max-w-4xl lg:mx-0 lg:max-w-none">
+                    <x-ui.comment-section :articleSlug="$slug ?? 'postgresql-18-performance-tuning'" />
+                </section>
             </article>
 
             {{-- Sidebar --}}
