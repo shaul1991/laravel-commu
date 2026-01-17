@@ -333,6 +333,88 @@ jobs:
             }
 
   # ==========================================
+  # Dev 환경 자동 배포 (develop 브랜치)
+  # ==========================================
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, feature-tests, architecture-tests]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Jenkins Deploy
+        run: |
+          curl -X POST \
+            "${{ secrets.JENKINS_URL }}/job/blogs/job/laravel-commu-dev/buildWithParameters" \
+            --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }}" \
+            --data-urlencode "ACTION=deploy" \
+            --data-urlencode "BRANCH=develop" \
+            --fail
+
+      - name: Send Slack notification
+        if: success()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "[DEV] 자동 배포 시작 - laravel-commu",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\ndevelop"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n`${{ github.sha }}`"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Message:*\n${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Jenkins 확인",
+                        "emoji": true
+                      },
+                      "url": "${{ secrets.JENKINS_URL }}/job/blogs/job/laravel-commu-dev"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Dev 사이트",
+                        "emoji": true
+                      },
+                      "url": "https://dev-blogs.shaul.link"
+                    }
+                  ]
+                }
+              ]
+            }
+
+  # ==========================================
   # CI 실패 시 Slack 알림
   # ==========================================
   notify-slack-failure:
