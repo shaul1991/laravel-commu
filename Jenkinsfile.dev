@@ -233,10 +233,12 @@ pipeline {
                             docker compose -f docker/docker-compose.dev.yml up -d dev
                     """
 
-                    // Laravel 캐시 생성
+                    // Storage 권한 설정 및 Laravel 초기화
                     sh """
                         sleep 5
-                        docker exec ${PROJECT_NAME} php artisan config:cache || true
+                        docker exec ${PROJECT_NAME} chown -R www-data:www-data /var/www/html/storage
+                        docker exec ${PROJECT_NAME} chmod -R 775 /var/www/html/storage
+                        docker exec ${PROJECT_NAME} php artisan storage:link || true
                         docker exec ${PROJECT_NAME} php artisan route:cache || true
                         docker exec ${PROJECT_NAME} php artisan view:cache || true
                         docker exec ${PROJECT_NAME} php artisan migrate --force || true
