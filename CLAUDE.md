@@ -89,6 +89,11 @@ git worktree add -b feature/ECS-xxx ../laravel-commu-worktrees/feature-ECS-xxx m
 git worktree add -b bugfix/ECS-xxx ../laravel-commu-worktrees/bugfix-ECS-xxx master
 ```
 
+**Worktree 제거 시점**: PR이 머지된 후 제거 (리뷰/수정 요청 대비)
+```bash
+git worktree remove ../laravel-commu-worktrees/feature-ECS-xxx
+```
+
 ## Git Worktree
 
 ### Git Worktree란?
