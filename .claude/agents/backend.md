@@ -35,6 +35,47 @@
 - Redis 캐시 전략
 - MongoDB 도큐먼트 설계
 
+### Database Rules (필수)
+
+#### 약한 결합 (Soft Reference) 정책
+Foreign Key 제약조건을 사용하지 않고 약한 결합 방식으로 테이블 간 관계를 구성한다.
+
+```php
+// ❌ 사용하지 않음
+$table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+
+// ✅ 약한 결합 방식 사용
+$table->uuid('user_id')->comment('users 테이블의 id 참조');
+```
+
+#### SoftDeletes 필수 사용
+모든 테이블과 Model에 `SoftDeletes`를 적용한다.
+
+**Migration:**
+```php
+$table->softDeletes();
+```
+
+**Model:**
+```php
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Post extends Model
+{
+    use SoftDeletes;
+
+    protected function casts(): array
+    {
+        return [
+            // ... 기타 casts
+            'deleted_at' => 'datetime',
+        ];
+    }
+}
+```
+
+**예외**: pivot tables, log/history 테이블, 임시 데이터 테이블
+
 ### Testing (TDD 필수)
 
 **테스트 프레임워크:**

@@ -13,9 +13,9 @@ return new class extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('article_id')->constrained('articles')->onDelete('cascade');
-            $table->foreignId('author_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('parent_id')->nullable()->constrained('comments')->onDelete('cascade');
+            $table->unsignedBigInteger('article_id')->comment('articles 테이블의 id 참조');
+            $table->unsignedBigInteger('author_id')->comment('users 테이블의 id 참조');
+            $table->unsignedBigInteger('parent_id')->nullable()->comment('comments 테이블의 id 참조 (대댓글)');
             $table->text('content');
             $table->unsignedInteger('like_count')->default(0);
             $table->unsignedInteger('reply_count')->default(0);
@@ -30,11 +30,13 @@ return new class extends Migration
 
         Schema::create('comment_likes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('comment_id')->constrained('comments')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('comment_id')->comment('comments 테이블의 id 참조');
+            $table->unsignedBigInteger('user_id')->comment('users 테이블의 id 참조');
             $table->timestamps();
 
             $table->unique(['comment_id', 'user_id']);
+            $table->index('comment_id');
+            $table->index('user_id');
         });
     }
 

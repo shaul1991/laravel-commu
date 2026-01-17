@@ -56,10 +56,25 @@ Red → Green → Refactor
 
 ## Instructions
 
-### Phase 0: Git Branch
-작업 시작 전 feature 브랜치를 생성한다:
+### Phase 0: Git Worktree
+작업 시작 전 git worktree로 독립된 작업 환경을 생성한다:
+
+**이유**: 병렬 작업 시 다른 브랜치에 영향을 주지 않기 위함
+
 ```bash
-git checkout -b feature/$1
+# 1. worktree 디렉토리 존재 여부 확인
+ls ../laravel-commu-worktrees/ 2>/dev/null || mkdir -p ../laravel-commu-worktrees
+
+# 2. git worktree로 새 브랜치 생성
+git worktree add -b feature/$1 ../laravel-commu-worktrees/feature-$1 master
+
+# 3. 해당 worktree 디렉토리에서 작업 수행
+cd ../laravel-commu-worktrees/feature-$1
+```
+
+**Worktree 제거 시점**: PR이 머지된 후 제거
+```bash
+git worktree remove ../laravel-commu-worktrees/feature-$1
 ```
 
 ### Phase 1: PM Agent
@@ -269,8 +284,34 @@ flowchart LR
     DevOps --> QA{Phase 5\nQA + E2E}
     QA -->|버그 발견| Dev
     QA -->|통과| Docs[Phase 6\nDocs]
-    Docs --> Merge[Merge\n& Push]
+    Docs --> PR[PR 생성\n& Merge]
 ```
+
+> ⚠️ **필수 규칙**: 직접 git push 금지. 모든 변경사항은 반드시 PR을 통해 머지.
+
+### Phase 7: PR 생성 및 머지
+모든 작업 완료 후 PR을 생성하여 머지한다:
+
+```bash
+# 1. 원격 브랜치로 push
+git push -u origin feature/$1
+
+# 2. PR 생성 (필수)
+gh pr create --title "feat(ECS-XX): $1 - $2" --body "## Summary
+- 기능 설명
+
+## Related
+- Jira Epic: ECS-XX
+- Confluence: [PRD 링크]
+
+## Test
+- [ ] 단위 테스트 통과
+- [ ] E2E 테스트 통과"
+
+# 3. PR 리뷰 후 머지
+```
+
+**⚠️ 직접 master push 금지**: 반드시 PR을 통해서만 머지
 
 ## Git Commit 규칙
 
@@ -334,7 +375,7 @@ Jira: ECS-XX
     - 통과 시: Phase 6으로 진행
     - 버그 발견 시: Jira 티켓 생성 → Phase 3으로 돌아가 수정
 11. **Docs Agent** → 인증 문서 정리
-12. **Git** → Merge & Push
+12. **PR 생성 및 머지** → `gh pr create` → 리뷰 후 머지
 
 ### Backend TDD 예시 코드 (Pest)
 ```php

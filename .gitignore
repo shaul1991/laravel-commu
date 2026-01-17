@@ -27,3 +27,9 @@ Homestead.yaml
 Thumbs.db
 /.playwright-mcp/
 /.mcp.json
+
+# Dusk test artifacts
+/tests/Browser/console/
+/tests/Browser/screenshots/
+/tests/Browser/source/
+.env.dusk.local

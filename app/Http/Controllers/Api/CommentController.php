@@ -225,6 +225,7 @@ final class CommentController extends Controller
             'reply_count' => $comment->reply_count,
             'is_liked' => $comment->isLikedBy($currentUserId),
             'is_mine' => $currentUserId !== null && $comment->author_id === $currentUserId,
+            'is_deleted' => $comment->is_deleted,
             'replies' => $comment->replies->map(fn ($reply) => $this->formatReply($reply, $currentUserId))->toArray(),
             'created_at' => $comment->created_at->toIso8601String(),
         ];
@@ -240,6 +241,7 @@ final class CommentController extends Controller
             'like_count' => $reply->like_count,
             'is_liked' => $reply->isLikedBy($currentUserId),
             'is_mine' => $currentUserId !== null && $reply->author_id === $currentUserId,
+            'is_deleted' => $reply->is_deleted,
             'created_at' => $reply->created_at->toIso8601String(),
         ];
     }

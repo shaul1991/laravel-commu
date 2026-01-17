@@ -6,9 +6,12 @@ namespace App\Infrastructure\Persistence\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UserSettingsModel extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'user_settings';
 
     protected $fillable = [
@@ -28,6 +31,7 @@ class UserSettingsModel extends Model
             'email_on_follow' => 'boolean',
             'email_on_like' => 'boolean',
             'push_enabled' => 'boolean',
+            'deleted_at' => 'datetime',
         ];
     }
 

@@ -122,6 +122,7 @@
                                 x-show="comment.is_mine"
                                 @click="editComment(comment); open = false"
                                 class="block w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
+                                :dusk="'comment-edit-' + comment.id"
                             >
                                 수정
                             </button>
@@ -129,6 +130,7 @@
                                 x-show="comment.is_mine"
                                 @click="deleteComment(comment.id); open = false"
                                 class="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                :dusk="'comment-delete-' + comment.id"
                             >
                                 삭제
                             </button>
@@ -136,6 +138,7 @@
                                 x-show="!comment.is_mine"
                                 @click="open = false"
                                 class="block w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
+                                :dusk="'comment-report-' + comment.id"
                             >
                                 신고
                             </button>
@@ -183,7 +186,7 @@
                                 @click="toggleLike(comment)"
                                 class="flex items-center gap-1 text-sm transition-colors"
                                 :class="comment.is_liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'"
-                                dusk="comment-like-button"
+                                :dusk="'comment-like-button-' + comment.id"
                             >
                                 <svg class="h-4 w-4" :fill="comment.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -193,7 +196,7 @@
                             <button
                                 @click="startReply(comment)"
                                 class="flex items-center gap-1 text-sm text-neutral-500 transition-colors hover:text-primary-600"
-                                dusk="comment-reply-button"
+                                :dusk="'comment-reply-button-' + comment.id"
                             >
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -229,6 +232,7 @@
                                 type="submit"
                                 class="btn-primary text-sm"
                                 :disabled="!replyContent.trim() || submitting"
+                                :dusk="'comment-reply-submit-' + comment.id"
                             >
                                 답글 작성
                             </button>

@@ -12,8 +12,8 @@ return new class extends Migration
     {
         Schema::create('follows', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('follower_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('following_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('follower_id')->comment('users 테이블의 id 참조 (팔로워)');
+            $table->unsignedBigInteger('following_id')->comment('users 테이블의 id 참조 (팔로잉)');
             $table->timestamps();
 
             $table->unique(['follower_id', 'following_id']);

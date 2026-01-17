@@ -8,11 +8,12 @@ use Database\Factories\NotificationModelFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class NotificationModel extends Model
 {
     /** @use HasFactory<NotificationModelFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected static function newFactory(): NotificationModelFactory
     {
@@ -37,6 +38,7 @@ class NotificationModel extends Model
             'is_read' => 'boolean',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

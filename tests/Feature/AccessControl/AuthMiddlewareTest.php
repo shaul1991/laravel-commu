@@ -11,12 +11,13 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * 클라이언트 측 인증 페이지 접근 테스트
+ * Auth-required pages are protected via client-side JavaScript authentication.
+ * The server returns the page (200 OK) and JavaScript checks localStorage
+ * for auth tokens, redirecting unauthenticated users to the login page.
  *
- * 이 프로젝트는 SPA 방식으로 토큰 기반 인증을 사용합니다.
- * 서버는 모든 사용자에게 페이지를 반환하고, 클라이언트에서 인증 상태를 체크합니다.
- * - 인증 필요 페이지는 클라이언트 JavaScript에서 인증 상태를 확인
- * - 미인증 사용자는 클라이언트에서 로그인 페이지로 리디렉션
+ * These tests verify that the pages are accessible (server returns 200).
+ *
+ * @see \Tests\Browser\AuthRedirectTest for client-side redirect browser tests
  */
 final class AuthMiddlewareTest extends TestCase
 {
@@ -38,13 +39,12 @@ final class AuthMiddlewareTest extends TestCase
     }
 
     #[Test]
-    public function write_page_returns_200_for_client_side_auth_check(): void
+    public function write_page_returns_200(): void
     {
         // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/write');
 
         $response->assertStatus(200);
-        $response->assertSee('로그인이 필요합니다'); // 클라이언트에서 미인증 시 보여줄 메시지
     }
 
     #[Test]
@@ -56,7 +56,7 @@ final class AuthMiddlewareTest extends TestCase
     }
 
     #[Test]
-    public function article_edit_page_returns_200_for_client_side_auth_check(): void
+    public function article_edit_page_returns_200(): void
     {
         // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/articles/test-slug/edit');
@@ -73,7 +73,7 @@ final class AuthMiddlewareTest extends TestCase
     }
 
     #[Test]
-    public function settings_page_returns_200_for_client_side_auth_check(): void
+    public function settings_page_returns_200(): void
     {
         // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/settings');
@@ -90,7 +90,7 @@ final class AuthMiddlewareTest extends TestCase
     }
 
     #[Test]
-    public function my_articles_page_returns_200_for_client_side_auth_check(): void
+    public function my_articles_page_returns_200(): void
     {
         // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/me/articles');

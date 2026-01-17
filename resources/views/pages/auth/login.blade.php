@@ -57,10 +57,7 @@
 
                     {{-- Password --}}
                     <div>
-                        <div class="flex items-center justify-between mb-1.5">
-                            <label for="password" class="block text-sm font-medium text-neutral-700">비밀번호</label>
-                            <a href="/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">비밀번호 찾기</a>
-                        </div>
+                        <label for="password" class="block text-sm font-medium text-neutral-700 mb-1.5">비밀번호</label>
                         <div class="relative">
                             <input
                                 :type="showPassword ? 'text' : 'password'"
@@ -75,6 +72,7 @@
                                 type="button"
                                 @click="showPassword = !showPassword"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                                tabindex="-1"
                             >
                                 <svg x-show="!showPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -111,6 +109,11 @@
                         </svg>
                         <span x-text="loading ? '로그인 중...' : '로그인'"></span>
                     </button>
+
+                    {{-- Forgot Password --}}
+                    <div class="text-center">
+                        <a href="/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">비밀번호를 잊으셨나요?</a>
+                    </div>
                 </form>
 
                 {{-- Divider --}}

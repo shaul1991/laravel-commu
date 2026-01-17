@@ -38,8 +38,10 @@ Route::get('/@{username}', function (string $username) {
     return view('pages.profile.show', ['username' => $username]);
 })->name('profile.show');
 
-// Auth Required Routes (client-side auth check via JavaScript/Alpine.js)
-// SPA 방식: 서버는 모든 사용자에게 페이지를 반환하고, 클라이언트에서 토큰 기반 인증 체크
+// Auth Required Routes - Client-side auth check via JavaScript
+// These routes render pages that require authentication.
+// Authentication is enforced client-side using localStorage tokens.
+// API calls from these pages use Bearer token authentication.
 Route::get('/write', function () {
     return view('pages.articles.write');
 })->name('articles.create');

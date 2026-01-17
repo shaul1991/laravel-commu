@@ -12,13 +12,14 @@ return new class extends Migration
     {
         Schema::create('user_settings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->comment('users 테이블의 id 참조');
             $table->boolean('email_on_comment')->default(true);
             $table->boolean('email_on_reply')->default(true);
             $table->boolean('email_on_follow')->default(true);
             $table->boolean('email_on_like')->default(false);
             $table->boolean('push_enabled')->default(true);
             $table->timestamps();
+            $table->softDeletes();
 
             $table->unique('user_id');
         });

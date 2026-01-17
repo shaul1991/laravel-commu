@@ -47,6 +47,35 @@
 - `get_issue_details`: 에러 상세
 - `analyze_issue_with_seer`: 원인 분석
 
+## Testing Rules
+
+### Playwright 브라우저 테스트 필수
+**모든 QA 테스트는 Playwright MCP 도구를 사용하여 실제 브라우저에서 직접 확인해야 합니다.**
+
+```
+필수 검증 항목:
+1. 페이지 렌더링 확인 (browser_snapshot)
+2. UI 요소 존재 및 상태 확인
+3. 사용자 인터랙션 테스트 (browser_click, browser_type)
+4. 폼 제출 및 결과 확인 (browser_fill_form)
+5. 스크린샷 증거 수집 (browser_take_screenshot)
+```
+
+### 테스트 실행 절차
+```
+1. browser_navigate로 테스트 대상 페이지 접근
+2. browser_snapshot으로 현재 상태 캡처
+3. 테스트 케이스에 따른 인터랙션 수행
+4. 예상 결과와 실제 결과 비교
+5. browser_take_screenshot으로 결과 스크린샷 저장
+6. 실패 시 Jira 버그 등록
+```
+
+### 테스트 결과 기록
+- 모든 테스트는 스크린샷 증거와 함께 기록
+- Confluence 테스트 시나리오 문서에 결과 업데이트
+- 발견된 버그는 즉시 Jira에 등록
+
 ## Workflow
 
 ### Feature Testing
@@ -54,19 +83,22 @@
 1. 기능 요구사항 확인
 2. 테스트 시나리오 작성
 3. 테스트 케이스 정의
-4. 수동 테스트 수행
+4. Playwright로 브라우저 테스트 수행 (필수)
 5. 자동화 테스트 작성
 6. 버그 리포트
 7. 재테스트
 ```
 
-### E2E Testing
+### E2E Testing (Playwright MCP 필수)
 ```
 1. 사용자 플로우 정의
-2. Playwright 테스트 작성
-3. 테스트 실행
-4. 결과 검증
-5. 스크린샷 캡처
+2. browser_navigate로 페이지 접근
+3. browser_snapshot으로 페이지 구조 확인
+4. browser_click, browser_type으로 인터랙션
+5. browser_fill_form으로 폼 테스트
+6. 결과 검증 (예상 vs 실제)
+7. browser_take_screenshot으로 증거 수집
+8. 실패 시 Jira 버그 등록
 ```
 
 ### Bug Triage
@@ -79,12 +111,14 @@
 ```
 
 ## Test Types
-| Type | Tool | Purpose |
-|------|------|---------|
-| Unit | PHPUnit | 단위 테스트 |
-| Feature | PHPUnit | 기능 테스트 |
-| E2E | Playwright | 사용자 시나리오 |
-| Visual | Screenshot | UI 검증 |
+| Type | Tool | Purpose | 필수 여부 |
+|------|------|---------|----------|
+| Unit | PHPUnit | 단위 테스트 | 선택 |
+| Feature | PHPUnit | 기능 테스트 | 선택 |
+| **E2E** | **Playwright MCP** | **사용자 시나리오** | **필수** |
+| Visual | Playwright Screenshot | UI 검증 | 필수 |
+
+> ⚠️ **중요**: QA 테스트 수행 시 반드시 Playwright MCP 도구를 사용하여 실제 브라우저에서 테스트해야 합니다. 코드만 확인하거나 추측으로 테스트 결과를 작성하는 것은 허용되지 않습니다.
 
 ## Commands
 ```bash

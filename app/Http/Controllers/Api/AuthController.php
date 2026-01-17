@@ -23,6 +23,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -49,6 +50,9 @@ final class AuthController extends Controller
             // Get the UserModel to create a token for auto-login
             $userModel = UserModel::where('uuid', $user->id()->value())->firstOrFail();
             $token = $userModel->createToken('auth-token')->plainTextToken;
+
+            // Establish web session for SPA
+            Auth::login($userModel);
 
             return response()->json([
                 'data' => [
@@ -92,6 +96,10 @@ final class AuthController extends Controller
                 )
             );
 
+            // Establish web session for SPA
+            $userModel = UserModel::where('uuid', $result->user->id()->value())->firstOrFail();
+            Auth::login($userModel, $request->boolean('remember'));
+
             return response()->json([
                 'data' => [
                     'user' => $this->transformUser($result->user),
@@ -109,6 +117,13 @@ final class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $request->user()?->currentAccessToken()->delete();
+
+        // Clear web session if available
+        if ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'message' => 'Logout successful',

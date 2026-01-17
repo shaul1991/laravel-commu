@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('articles', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid')->unique();
-            $table->foreignId('author_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('author_id')->comment('users 테이블의 id 참조');
             $table->string('title', 200);
             $table->string('slug')->unique();
             $table->text('content_markdown');
@@ -31,11 +31,13 @@ return new class extends Migration
 
         Schema::create('article_likes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('article_id')->constrained('articles')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedBigInteger('article_id')->comment('articles 테이블의 id 참조');
+            $table->unsignedBigInteger('user_id')->comment('users 테이블의 id 참조');
             $table->timestamp('created_at');
 
             $table->unique(['article_id', 'user_id']);
+            $table->index('article_id');
+            $table->index('user_id');
         });
     }
 
