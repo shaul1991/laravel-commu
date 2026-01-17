@@ -172,6 +172,91 @@
                             </div>
                         </form>
 
+                        {{-- Social Account Linking Section --}}
+                        <div class="mt-8 pt-6 border-t border-neutral-200">
+                            <h3 class="text-lg font-bold text-neutral-900 mb-2">소셜 계정 연동</h3>
+                            <p class="text-sm text-neutral-600 mb-4">다른 서비스 계정을 연동하여 간편하게 로그인하세요</p>
+
+                            <div class="space-y-3">
+                                {{-- GitHub --}}
+                                <div class="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
+                                    <div class="flex items-center gap-3">
+                                        <div :class="socialAccounts.github ? 'bg-neutral-900' : 'bg-neutral-100'" class="w-10 h-10 flex items-center justify-center rounded-full">
+                                            <svg class="w-5 h-5" :class="socialAccounts.github ? 'text-white' : 'text-neutral-400'" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium text-neutral-900">GitHub</span>
+                                            <p class="text-sm" :class="socialAccounts.github ? 'text-neutral-600' : 'text-neutral-500'" x-text="socialAccounts.github ? (socialAccounts.github.provider_email || socialAccounts.github.nickname) : '연동되지 않음'"></p>
+                                        </div>
+                                    </div>
+                                    <template x-if="!socialAccounts.github">
+                                        <button @click="linkSocialAccount('github')" class="btn-outline text-sm" :disabled="socialLoading">연동하기</button>
+                                    </template>
+                                    <template x-if="socialAccounts.github">
+                                        <button @click="showUnlinkModal = true; unlinkProvider = 'github'" class="text-sm text-red-600 hover:text-red-700 font-medium" :disabled="!canUnlink('github')">연동 해제</button>
+                                    </template>
+                                </div>
+
+                                {{-- Google --}}
+                                <div class="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 flex items-center justify-center rounded-full" :class="socialAccounts.google ? 'bg-white border border-neutral-200' : 'bg-neutral-100'">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24">
+                                                <template x-if="socialAccounts.google">
+                                                    <g>
+                                                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                                    </g>
+                                                </template>
+                                                <template x-if="!socialAccounts.google">
+                                                    <path fill="currentColor" class="text-neutral-400" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                                </template>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium text-neutral-900">Google</span>
+                                            <p class="text-sm" :class="socialAccounts.google ? 'text-neutral-600' : 'text-neutral-500'" x-text="socialAccounts.google ? (socialAccounts.google.provider_email || socialAccounts.google.nickname) : '연동되지 않음'"></p>
+                                        </div>
+                                    </div>
+                                    <template x-if="!socialAccounts.google">
+                                        <button @click="linkSocialAccount('google')" class="btn-outline text-sm" :disabled="socialLoading">연동하기</button>
+                                    </template>
+                                    <template x-if="socialAccounts.google">
+                                        <button @click="showUnlinkModal = true; unlinkProvider = 'google'" class="text-sm text-red-600 hover:text-red-700 font-medium" :disabled="!canUnlink('google')">연동 해제</button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            {{-- 마지막 인증 수단 경고 --}}
+                            <template x-if="!canUnlinkAny()">
+                                <p class="mt-3 text-sm text-amber-600">
+                                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다.
+                                </p>
+                            </template>
+                        </div>
+
+                        {{-- Unlink Confirm Modal --}}
+                        <div x-show="showUnlinkModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" x-cloak>
+                            <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl" @click.away="showUnlinkModal = false">
+                                <h3 class="text-lg font-bold text-neutral-900 mb-4" x-text="unlinkProvider === 'github' ? 'GitHub 연동을 해제하시겠습니까?' : 'Google 연동을 해제하시겠습니까?'"></h3>
+                                <p class="text-neutral-600 mb-6">연동을 해제하면 해당 계정으로 로그인할 수 없습니다. 나중에 다시 연동할 수 있습니다.</p>
+                                <div class="flex gap-3 justify-end">
+                                    <button type="button" @click="showUnlinkModal = false; unlinkProvider = null" class="btn-outline">취소</button>
+                                    <button type="button" @click="unlinkSocialAccount()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium" :disabled="socialLoading">
+                                        <span x-show="!socialLoading">연동 해제</span>
+                                        <span x-show="socialLoading">처리 중...</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- Danger Zone --}}
                         <div class="mt-12 pt-6 border-t border-neutral-200">
                             <h3 class="text-lg font-bold text-red-600 mb-4">위험 구역</h3>
@@ -383,6 +468,13 @@
             deletePassword: '',
             deleting: false,
 
+            // Social Account Linking
+            socialAccounts: { github: null, google: null },
+            socialLoading: false,
+            showUnlinkModal: false,
+            unlinkProvider: null,
+            hasPassword: true,
+
             async init() {
                 this.isAuthenticated = window.auth?.isAuthenticated() ?? false;
 
@@ -392,6 +484,10 @@
                 }
 
                 await this.fetchSettings();
+
+                if (this.isAuthenticated) {
+                    await this.fetchSocialAccounts();
+                }
             },
 
             async fetchSettings() {
@@ -648,6 +744,82 @@
             clearMessages() {
                 this.successMessage = '';
                 this.errorMessage = '';
+            },
+
+            // Social Account Linking Methods
+            async fetchSocialAccounts() {
+                try {
+                    const response = await fetch('/api/auth/social-accounts', {
+                        headers: {
+                            'Accept': 'application/json',
+                            ...window.auth.getAuthHeaders()
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.socialAccounts = data.data || { github: null, google: null };
+                        this.hasPassword = data.has_password ?? true;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch social accounts:', error);
+                }
+            },
+
+            async linkSocialAccount(provider) {
+                this.socialLoading = true;
+                try {
+                    const response = await fetch(`/api/auth/oauth/${provider}/redirect`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            ...window.auth.getAuthHeaders()
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        window.location.href = data.data.url;
+                    }
+                } catch (error) {
+                    this.showError('소셜 계정 연동에 실패했습니다.');
+                } finally {
+                    this.socialLoading = false;
+                }
+            },
+
+            async unlinkSocialAccount() {
+                if (!this.unlinkProvider) return;
+                this.socialLoading = true;
+                try {
+                    const response = await fetch(`/api/auth/social-accounts/${this.unlinkProvider}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            ...window.auth.getAuthHeaders()
+                        }
+                    });
+                    if (response.ok) {
+                        this.socialAccounts[this.unlinkProvider] = null;
+                        this.showSuccess(`${this.unlinkProvider === 'github' ? 'GitHub' : 'Google'} 연동이 해제되었습니다.`);
+                    } else {
+                        const data = await response.json();
+                        this.showError(data.message || '연동 해제에 실패했습니다.');
+                    }
+                } catch (error) {
+                    this.showError('연동 해제에 실패했습니다.');
+                } finally {
+                    this.socialLoading = false;
+                    this.showUnlinkModal = false;
+                    this.unlinkProvider = null;
+                }
+            },
+
+            canUnlink(provider) {
+                const linkedCount = (this.socialAccounts.github ? 1 : 0) + (this.socialAccounts.google ? 1 : 0);
+                return this.hasPassword || linkedCount > 1;
+            },
+
+            canUnlinkAny() {
+                const linkedCount = (this.socialAccounts.github ? 1 : 0) + (this.socialAccounts.google ? 1 : 0);
+                return this.hasPassword || linkedCount > 1;
             }
         };
     }
