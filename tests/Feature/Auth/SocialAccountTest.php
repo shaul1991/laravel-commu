@@ -154,9 +154,7 @@ final class SocialAccountTest extends TestCase
             'expiresIn' => 3600,
         ]);
 
-        $response = $this->postJson('/api/auth/oauth/github/callback', [
-            'code' => 'valid_code',
-        ]);
+        $response = $this->get('/api/auth/oauth/github/callback?code=valid_code');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -186,9 +184,7 @@ final class SocialAccountTest extends TestCase
             'expiresIn' => 3600,
         ]);
 
-        $response = $this->postJson('/api/auth/oauth/github/callback', [
-            'code' => 'valid_code',
-        ]);
+        $response = $this->get('/api/auth/oauth/github/callback?code=valid_code');
 
         $response->assertStatus(200);
 
@@ -214,9 +210,7 @@ final class SocialAccountTest extends TestCase
             'expiresIn' => 3600,
         ]);
 
-        $response = $this->postJson('/api/auth/oauth/github/callback', [
-            'code' => 'valid_code',
-        ]);
+        $response = $this->get('/api/auth/oauth/github/callback?code=valid_code');
 
         $response->assertStatus(200);
 
@@ -260,9 +254,7 @@ final class SocialAccountTest extends TestCase
             'expiresIn' => 3600,
         ]);
 
-        $response = $this->postJson('/api/auth/oauth/github/callback', [
-            'code' => 'valid_code',
-        ]);
+        $response = $this->get('/api/auth/oauth/github/callback?code=valid_code');
 
         $response->assertStatus(200);
 
