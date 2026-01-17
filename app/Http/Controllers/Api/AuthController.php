@@ -1,0 +1,140 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Api;
+
+use App\Application\Auth\InvalidCredentialsException;
+use App\Application\Auth\LoginUserInput;
+use App\Application\Auth\LoginUserUseCase;
+use App\Application\Auth\RegisterUserInput;
+use App\Application\Auth\RegisterUserUseCase;
+use App\Domain\Core\User\Entities\User;
+use App\Domain\Core\User\Exceptions\InvalidEmailException;
+use App\Domain\Core\User\Exceptions\InvalidUsernameException;
+use App\Domain\Core\User\Exceptions\WeakPasswordException;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+final class AuthController extends Controller
+{
+    public function __construct(
+        private readonly RegisterUserUseCase $registerUseCase,
+        private readonly LoginUserUseCase $loginUseCase
+    ) {}
+
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        try {
+            $user = $this->registerUseCase->execute(
+                new RegisterUserInput(
+                    name: $request->validated('name'),
+                    email: $request->validated('email'),
+                    username: $request->validated('username'),
+                    password: $request->validated('password')
+                )
+            );
+
+            return response()->json([
+                'data' => $this->transformUser($user),
+                'message' => 'User registered successfully',
+            ], 201);
+        } catch (InvalidEmailException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['email' => [$e->getMessage()]],
+            ], 422);
+        } catch (InvalidUsernameException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['username' => [$e->getMessage()]],
+            ], 422);
+        } catch (WeakPasswordException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['password' => [$e->getMessage()]],
+            ], 422);
+        } catch (\DomainException $e) {
+            $field = str_contains($e->getMessage(), 'Email') ? 'email' : 'username';
+
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => [$field => [$e->getMessage()]],
+            ], 422);
+        }
+    }
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->loginUseCase->execute(
+                new LoginUserInput(
+                    emailOrUsername: $request->validated('email'),
+                    password: $request->validated('password')
+                )
+            );
+
+            return response()->json([
+                'data' => [
+                    'user' => $this->transformUser($result->user),
+                    'token' => $result->token,
+                ],
+                'message' => 'Login successful',
+            ]);
+        } catch (InvalidCredentialsException) {
+            return response()->json([
+                'message' => 'Invalid credentials',
+            ], 401);
+        }
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()?->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout successful',
+        ]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $user->uuid,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'bio' => $user->bio,
+                'avatar_url' => $user->avatar_url,
+                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                'created_at' => $user->created_at->toIso8601String(),
+            ],
+        ]);
+    }
+
+    private function transformUser(User $user): array
+    {
+        return [
+            'id' => $user->id()->value(),
+            'name' => $user->name(),
+            'email' => $user->email()->value(),
+            'username' => $user->username()->value(),
+            'bio' => $user->bio(),
+            'avatar_url' => $user->avatarUrl(),
+            'email_verified_at' => $user->emailVerifiedAt()?->format('c'),
+            'created_at' => $user->createdAt()->format('c'),
+        ];
+    }
+}

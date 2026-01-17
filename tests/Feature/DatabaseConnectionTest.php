@@ -116,6 +116,10 @@ class DatabaseConnectionTest extends TestCase
             $this->markTestSkipped('MongoDB not configured');
         }
 
+        if (! extension_loaded('mongodb')) {
+            $this->markTestSkipped('MongoDB extension not installed');
+        }
+
         try {
             $client = DB::connection('mongodb')->getClient();
             $result = $client->selectDatabase('admin')->command(['ping' => 1]);
