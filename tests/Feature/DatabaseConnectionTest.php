@@ -42,6 +42,8 @@ class DatabaseConnectionTest extends TestCase
 
         // Create
         $id = DB::table('users')->insertGetId([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'username' => 'testuser_'.uniqid(),
             'name' => 'Test User',
             'email' => 'test-'.uniqid().'@example.com',
             'password' => bcrypt('password'),
