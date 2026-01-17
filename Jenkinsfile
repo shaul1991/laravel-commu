@@ -130,7 +130,7 @@ pipeline {
         }
 
         // ==========================================
-        // 배포: 코드 업데이트
+        // 배포: 코드 업데이트 (호스트 경로 마운트하여 실행)
         // ==========================================
         stage('Update Code') {
             when {
@@ -138,17 +138,19 @@ pipeline {
             }
             steps {
                 script {
-                    // 배포 디렉토리로 이동하여 git pull
+                    // Git 작업을 위해 alpine/git 컨테이너 사용
                     sh """
-                        cd ${DEPLOY_PATH}
-                        git fetch origin
-                        git checkout ${params.BRANCH}
-                        git pull origin ${params.BRANCH}
+                        docker run --rm \
+                            -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                            -v /root/.ssh:/root/.ssh:ro \
+                            -w ${DEPLOY_PATH} \
+                            alpine/git:latest \
+                            sh -c "git config --global --add safe.directory ${DEPLOY_PATH} && git fetch origin && git checkout ${params.BRANCH} && git pull origin ${params.BRANCH}"
                     """
 
                     // 배포 버전 기록
                     env.DEPLOY_VERSION = sh(
-                        script: "cd ${DEPLOY_PATH} && git rev-parse --short HEAD",
+                        script: "docker run --rm -v ${DEPLOY_PATH}:${DEPLOY_PATH} -w ${DEPLOY_PATH} alpine/git:latest rev-parse --short HEAD",
                         returnStdout: true
                     ).trim()
 
@@ -164,7 +166,7 @@ pipeline {
         }
 
         // ==========================================
-        // 배포: 의존성 설치 및 빌드
+        // 배포: 의존성 설치 및 빌드 (Base 이미지 사용)
         // ==========================================
         stage('Install Dependencies') {
             when {
@@ -172,14 +174,11 @@ pipeline {
             }
             steps {
                 sh """
-                    cd ${DEPLOY_PATH}
-
-                    # Composer 의존성 설치
-                    composer install --no-dev --optimize-autoloader --no-interaction
-
-                    # Node 의존성 설치 및 빌드
-                    npm ci --production=false
-                    npm run build
+                    docker run --rm \
+                        -v ${DEPLOY_PATH}:/var/www/html \
+                        -w /var/www/html \
+                        ${DOCKER_IMAGE_BASE}:latest \
+                        sh -c "composer install --no-dev --optimize-autoloader --no-interaction && npm ci --production=false && npm run build"
                 """
             }
         }
@@ -193,8 +192,15 @@ pipeline {
             }
             steps {
                 configFileProvider([
-                    configFile(fileId: env.ENV_CONFIG_FILE_ID, targetLocation: "${DEPLOY_PATH}/.env")
+                    configFile(fileId: env.ENV_CONFIG_FILE_ID, targetLocation: "${WORKSPACE}/.env.prod")
                 ]) {
+                    sh """
+                        docker run --rm \
+                            -v ${WORKSPACE}/.env.prod:/tmp/.env:ro \
+                            -v ${DEPLOY_PATH}:/var/www/html \
+                            alpine:latest \
+                            cp /tmp/.env /var/www/html/.env
+                    """
                     echo ".env file injected from Jenkins Config File Provider"
                 }
             }
@@ -215,13 +221,12 @@ pipeline {
                         docker rm ${PROJECT_NAME}-${TARGET_ENV} 2>/dev/null || true
                     """
 
-                    // 새 컨테이너 시작
+                    // 새 컨테이너 시작 (docker compose를 직접 실행)
                     sh """
-                        cd ${DEPLOY_PATH}
                         APP_PATH=${DEPLOY_PATH} \
                         STORAGE_PATH=${STORAGE_PATH} \
                         ENV_FILE=${DEPLOY_PATH}/.env \
-                        docker compose -f docker/docker-compose.prod.yml up -d ${TARGET_ENV}
+                        docker compose -f ${DEPLOY_PATH}/docker/docker-compose.prod.yml up -d ${TARGET_ENV}
                     """
 
                     // Laravel 캐시 생성 (컨테이너 내에서 실행)
@@ -281,16 +286,21 @@ pipeline {
             }
             steps {
                 script {
-                    // Caddy 설정 업데이트
+                    // Caddy 설정 업데이트 (호스트 경로 마운트)
                     sh """
-                        ${DEPLOY_PATH}/deploy/switch-traffic.sh ${TARGET_PORT}
+                        docker run --rm \
+                            -v ${DEPLOY_PATH}:/var/www/html \
+                            -v /etc/caddy:/etc/caddy \
+                            alpine:latest \
+                            sh -c "/var/www/html/deploy/switch-traffic.sh ${TARGET_PORT}"
                     """
 
                     // 배포 버전 기록
                     sh """
-                        echo "${VERSION_TAG}" >> ${DEPLOY_PATH}/deploy/versions.log
-                        tail -10 ${DEPLOY_PATH}/deploy/versions.log > ${DEPLOY_PATH}/deploy/versions.tmp
-                        mv ${DEPLOY_PATH}/deploy/versions.tmp ${DEPLOY_PATH}/deploy/versions.log
+                        docker run --rm \
+                            -v ${DEPLOY_PATH}:/var/www/html \
+                            alpine:latest \
+                            sh -c "echo '${VERSION_TAG}' >> /var/www/html/deploy/versions.log && tail -10 /var/www/html/deploy/versions.log > /var/www/html/deploy/versions.tmp && mv /var/www/html/deploy/versions.tmp /var/www/html/deploy/versions.log"
                     """
 
                     echo "Traffic switched to ${TARGET_ENV} (port ${TARGET_PORT})"
@@ -310,10 +320,12 @@ pipeline {
                     // 이전 컨테이너는 롤백을 위해 유지
                     echo "Previous container (${CURRENT_ENV}) kept for rollback"
 
-                    // npm 캐시 정리
+                    // npm 캐시 정리 (호스트 경로 마운트)
                     sh """
-                        cd ${DEPLOY_PATH}
-                        rm -rf node_modules/.cache 2>/dev/null || true
+                        docker run --rm \
+                            -v ${DEPLOY_PATH}:/var/www/html \
+                            alpine:latest \
+                            rm -rf /var/www/html/node_modules/.cache 2>/dev/null || true
                     """
                 }
             }
@@ -330,9 +342,9 @@ pipeline {
                 script {
                     currentBuild.displayName = "#${BUILD_NUMBER} - rollback"
 
-                    // 현재 활성 포트 확인
+                    // 현재 활성 포트 확인 (호스트 경로 마운트)
                     def currentPort = sh(
-                        script: "cat ${DEPLOY_PATH}/deploy/current-port.txt || echo '${BLUE_PORT}'",
+                        script: "docker run --rm -v ${DEPLOY_PATH}:/var/www/html alpine:latest cat /var/www/html/deploy/current-port.txt 2>/dev/null || echo '${BLUE_PORT}'",
                         returnStdout: true
                     ).trim()
 
@@ -350,9 +362,13 @@ pipeline {
                         error("No previous version available for rollback")
                     }
 
-                    // 트래픽 전환
+                    // 트래픽 전환 (호스트 경로 마운트)
                     sh """
-                        ${DEPLOY_PATH}/deploy/switch-traffic.sh ${rollbackPort}
+                        docker run --rm \
+                            -v ${DEPLOY_PATH}:/var/www/html \
+                            -v /etc/caddy:/etc/caddy \
+                            alpine:latest \
+                            sh -c "/var/www/html/deploy/switch-traffic.sh ${rollbackPort}"
                     """
 
                     echo "Rolled back to ${rollbackEnv} (port ${rollbackPort})"
