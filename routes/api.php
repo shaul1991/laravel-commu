@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\SocialAccountController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
             ->middleware('signed')
             ->name('verification.verify');
+
+        // Social Account Routes
+        Route::get('/social-accounts', [SocialAccountController::class, 'index']);
+        Route::delete('/social-accounts/{provider}', [SocialAccountController::class, 'destroy']);
     });
 
     // Article Routes (Protected)
