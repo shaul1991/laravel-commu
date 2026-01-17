@@ -46,8 +46,15 @@ final class AuthController extends Controller
                 )
             );
 
+            // Get the UserModel to create a token for auto-login
+            $userModel = UserModel::where('uuid', $user->id()->value())->firstOrFail();
+            $token = $userModel->createToken('auth-token')->plainTextToken;
+
             return response()->json([
-                'data' => $this->transformUser($user),
+                'data' => [
+                    'user' => $this->transformUser($user),
+                    'token' => $token,
+                ],
                 'message' => 'User registered successfully',
             ], 201);
         } catch (InvalidEmailException $e) {
