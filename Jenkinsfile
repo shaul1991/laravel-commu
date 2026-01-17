@@ -31,7 +31,7 @@ pipeline {
 
         // GitHub 설정
         GIT_REPO = 'git@github.com:shaul1991/laravel-commu.git'
-        GIT_CREDENTIALS_ID = 'deploy'
+        GIT_CREDENTIALS_ID = 'home-server-deploy'
 
         // Slack 설정 (Jenkins Slack Plugin 미설정 시 알림 스킵)
         SLACK_CHANNEL = '#deployments'
