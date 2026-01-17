@@ -765,24 +765,10 @@
                 }
             },
 
-            async linkSocialAccount(provider) {
-                this.socialLoading = true;
-                try {
-                    const response = await fetch(`/api/auth/oauth/${provider}/redirect`, {
-                        headers: {
-                            'Accept': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        window.location.href = data.data.url;
-                    }
-                } catch (error) {
-                    this.showError('소셜 계정 연동에 실패했습니다.');
-                } finally {
-                    this.socialLoading = false;
-                }
+            linkSocialAccount(provider) {
+                // OAuth 리다이렉트 엔드포인트는 HTTP 302 리다이렉트를 반환하므로
+                // fetch API 대신 직접 해당 URL로 이동
+                window.location.href = `/api/auth/oauth/${provider}/redirect`;
             },
 
             async unlinkSocialAccount() {
