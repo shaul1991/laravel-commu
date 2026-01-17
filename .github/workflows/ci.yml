@@ -345,7 +345,7 @@ jobs:
       - name: Trigger Jenkins Deploy
         run: |
           curl -X POST \
-            "${{ secrets.JENKINS_URL }}/job/blogs/job/laravel-commu-dev/buildWithParameters?token=${{ secrets.JENKINS_BUILD_TOKEN }}&ACTION=deploy&BRANCH=develop" \
+            "${{ secrets.JENKINS_URL }}/job/blogs/job/laravel-commu-dev/buildWithParameters?token=${{ secrets.JENKINS_DEV_BUILD_TOKEN }}&ACTION=deploy&BRANCH=develop" \
             --fail
 
       - name: Send Slack notification
