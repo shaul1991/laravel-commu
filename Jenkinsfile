@@ -105,6 +105,11 @@ pipeline {
                         chmod -R 775 ${STORAGE_PATH}
                     """
 
+                    // Docker 네트워크 생성 (없으면 생성)
+                    sh """
+                        docker network create laravel_network 2>/dev/null || true
+                    """
+
                     // 현재 활성 컨테이너 확인
                     def blueRunning = sh(
                         script: "docker ps -q -f name=${PROJECT_NAME}-blue",
