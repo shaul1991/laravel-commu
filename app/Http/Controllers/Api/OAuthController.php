@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Infrastructure\Persistence\Eloquent\SocialAccountModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -48,10 +51,30 @@ final class OAuthController extends Controller
         try {
             $socialUser = Socialite::driver($provider)->stateless()->user();
 
-            // Find or create user
-            $user = UserModel::where('email', $socialUser->getEmail())->first();
+            $user = DB::transaction(function () use ($provider, $socialUser) {
+                // Step 1: Check if social account exists
+                $socialAccount = SocialAccountModel::where('provider', $provider)
+                    ->where('provider_id', $socialUser->getId())
+                    ->first();
 
-            if (! $user) {
+                if ($socialAccount) {
+                    // Social account exists - update tokens and return user
+                    $this->updateSocialAccountTokens($socialAccount, $socialUser);
+
+                    return UserModel::find($socialAccount->user_id);
+                }
+
+                // Step 2: Check if user exists by email
+                $user = UserModel::where('email', $socialUser->getEmail())->first();
+
+                if ($user) {
+                    // User exists - create social account and link
+                    $this->createSocialAccount($user, $provider, $socialUser);
+
+                    return $user;
+                }
+
+                // Step 3: Create new user and social account
                 $username = $this->generateUniqueUsername(
                     $socialUser->getNickname() ?? $socialUser->getName()
                 );
@@ -65,7 +88,11 @@ final class OAuthController extends Controller
                     'avatar_url' => $socialUser->getAvatar(),
                     'email_verified_at' => now(),
                 ]);
-            }
+
+                $this->createSocialAccount($user, $provider, $socialUser);
+
+                return $user;
+            });
 
             // Create token
             $token = $user->createToken('oauth-token')->plainTextToken;
@@ -91,6 +118,37 @@ final class OAuthController extends Controller
                 'message' => 'OAuth authentication failed',
             ], 400);
         }
+    }
+
+    private function createSocialAccount(UserModel $user, string $provider, $socialUser): SocialAccountModel
+    {
+        return SocialAccountModel::create([
+            'user_id' => $user->id,
+            'provider' => $provider,
+            'provider_id' => $socialUser->getId(),
+            'provider_email' => $socialUser->getEmail(),
+            'nickname' => $socialUser->getNickname(),
+            'avatar_url' => $socialUser->getAvatar(),
+            'access_token' => $socialUser->token,
+            'refresh_token' => $socialUser->refreshToken ?? null,
+            'token_expires_at' => $socialUser->expiresIn
+                ? Carbon::now()->addSeconds($socialUser->expiresIn)
+                : null,
+        ]);
+    }
+
+    private function updateSocialAccountTokens(SocialAccountModel $socialAccount, $socialUser): void
+    {
+        $socialAccount->update([
+            'provider_email' => $socialUser->getEmail(),
+            'nickname' => $socialUser->getNickname(),
+            'avatar_url' => $socialUser->getAvatar(),
+            'access_token' => $socialUser->token,
+            'refresh_token' => $socialUser->refreshToken ?? null,
+            'token_expires_at' => $socialUser->expiresIn
+                ? Carbon::now()->addSeconds($socialUser->expiresIn)
+                : null,
+        ]);
     }
 
     private function generateUniqueUsername(string $baseName): string
