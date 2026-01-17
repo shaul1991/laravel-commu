@@ -214,6 +214,53 @@ export const auth = {
 
         return headers;
     },
+
+    /**
+     * Handle 401 Unauthorized response
+     * Clears auth data and redirects to login page
+     */
+    handleUnauthorized() {
+        this.clear();
+
+        // Store current URL for redirect after login
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/login' && currentPath !== '/register') {
+            sessionStorage.setItem('redirect_after_login', currentPath);
+        }
+
+        window.location.href = '/login?session_expired=1';
+    },
+
+    /**
+     * Authenticated fetch wrapper with automatic 401 handling
+     * Use this for all authenticated API requests
+     */
+    async fetch(url, options = {}) {
+        const token = this.getToken();
+
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        // Handle 401 Unauthorized
+        if (response.status === 401) {
+            this.handleUnauthorized();
+            throw { status: 401, message: 'Session expired' };
+        }
+
+        return response;
+    },
 };
 
 // Make auth available globally for Alpine.js components

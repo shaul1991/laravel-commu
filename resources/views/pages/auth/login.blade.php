@@ -20,6 +20,16 @@
             {{-- Login Form --}}
             <div class="card p-8" x-data="loginForm()">
                 <form @submit.prevent="submit" class="space-y-6">
+                    {{-- Session Expired Message --}}
+                    <div x-show="sessionExpired" x-cloak class="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                        <div class="flex items-start gap-3">
+                            <svg class="h-5 w-5 text-amber-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <p class="text-sm text-amber-700">세션이 만료되었습니다. 다시 로그인해 주세요.</p>
+                        </div>
+                    </div>
+
                     {{-- Error Message --}}
                     <div x-show="error" x-cloak class="rounded-lg bg-red-50 border border-red-200 p-4">
                         <div class="flex items-start gap-3">
@@ -157,6 +167,7 @@
                 loading: false,
                 error: null,
                 errors: {},
+                sessionExpired: new URLSearchParams(window.location.search).has('session_expired'),
 
                 async submit() {
                     this.loading = true;

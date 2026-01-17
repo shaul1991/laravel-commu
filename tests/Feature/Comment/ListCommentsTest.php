@@ -157,4 +157,92 @@ final class ListCommentsTest extends TestCase
 
         $this->assertEquals('삭제된 댓글입니다.', $data[0]['content']);
     }
+
+    public function test_로그인_사용자의_댓글에는_is_mine이_true로_반환된다(): void
+    {
+        // 내가 작성한 댓글
+        $myComment = CommentModel::factory()->create([
+            'article_id' => $this->article->id,
+            'author_id' => $this->user->id,
+        ]);
+
+        // 다른 사람이 작성한 댓글
+        $otherUser = UserModel::factory()->create();
+        $otherComment = CommentModel::factory()->create([
+            'article_id' => $this->article->id,
+            'author_id' => $otherUser->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/articles/{$this->article->slug}/comments");
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'content',
+                        'author',
+                        'is_mine',
+                    ],
+                ],
+            ]);
+
+        $data = $response->json('data');
+
+        // 최신순 정렬이므로 otherComment가 먼저 (index 0)
+        $myCommentData = collect($data)->firstWhere('id', $myComment->id);
+        $otherCommentData = collect($data)->firstWhere('id', $otherComment->id);
+
+        $this->assertTrue($myCommentData['is_mine']);
+        $this->assertFalse($otherCommentData['is_mine']);
+    }
+
+    public function test_비로그인_사용자는_is_mine이_false로_반환된다(): void
+    {
+        CommentModel::factory()->create([
+            'article_id' => $this->article->id,
+        ]);
+
+        $response = $this->getJson("/api/articles/{$this->article->slug}/comments");
+
+        $response->assertOk();
+        $data = $response->json('data');
+
+        $this->assertFalse($data[0]['is_mine']);
+    }
+
+    public function test_대댓글에도_is_mine이_반환된다(): void
+    {
+        $parentComment = CommentModel::factory()->create([
+            'article_id' => $this->article->id,
+        ]);
+
+        // 내가 작성한 대댓글
+        $myReply = CommentModel::factory()->create([
+            'article_id' => $this->article->id,
+            'parent_id' => $parentComment->id,
+            'author_id' => $this->user->id,
+        ]);
+
+        // 다른 사람이 작성한 대댓글
+        $otherUser = UserModel::factory()->create();
+        $otherReply = CommentModel::factory()->create([
+            'article_id' => $this->article->id,
+            'parent_id' => $parentComment->id,
+            'author_id' => $otherUser->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/articles/{$this->article->slug}/comments");
+
+        $response->assertOk();
+        $replies = $response->json('data.0.replies');
+
+        $myReplyData = collect($replies)->firstWhere('id', $myReply->id);
+        $otherReplyData = collect($replies)->firstWhere('id', $otherReply->id);
+
+        $this->assertTrue($myReplyData['is_mine']);
+        $this->assertFalse($otherReplyData['is_mine']);
+    }
 }

@@ -10,15 +10,14 @@
 <section
     class="mt-12"
     x-data="commentSection('{{ $articleSlug }}')"
-    x-init="fetchComments()"
+    x-init="init()"
 >
     <h2 class="mb-6 text-xl font-bold text-neutral-900">
         댓글 <span class="text-neutral-500" x-text="'(' + (meta?.total || 0) + ')'"></span>
     </h2>
 
-    {{-- Comment Form --}}
-    @auth
-    <form @submit.prevent="submitComment()" class="mb-8">
+    {{-- Comment Form (로그인 사용자) --}}
+    <form x-show="isAuthenticated" @submit.prevent="submitComment()" class="mb-8" x-cloak>
         <div class="rounded-xl border border-neutral-200 bg-white p-4">
             <textarea
                 x-model="newComment"
@@ -49,12 +48,12 @@
             </div>
         </div>
     </form>
-    @else
-    <div class="mb-8 rounded-xl border border-neutral-200 bg-neutral-50 p-6 text-center">
+
+    {{-- Login Prompt (비로그인 사용자) --}}
+    <div x-show="!isAuthenticated" class="mb-8 rounded-xl border border-neutral-200 bg-neutral-50 p-6 text-center" x-cloak>
         <p class="text-neutral-600">댓글을 작성하려면 로그인이 필요합니다.</p>
         <a href="{{ route('login') }}" class="btn-primary mt-3 inline-block">로그인</a>
     </div>
-    @endauth
 
     {{-- Sort Options --}}
     <div class="mb-4 flex items-center gap-4">
@@ -111,9 +110,8 @@
                         </div>
                     </div>
 
-                    {{-- Actions Dropdown --}}
-                    @auth
-                    <div class="relative" x-data="{ open: false }">
+                    {{-- Actions Dropdown (로그인 사용자만) --}}
+                    <div x-show="isAuthenticated" class="relative" x-data="{ open: false }" x-cloak>
                         <button @click="open = !open" class="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600" :dusk="'comment-menu-' + comment.id">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -146,7 +144,6 @@
                             </button>
                         </div>
                     </div>
-                    @endauth
                 </div>
 
                 {{-- Comment Content --}}
@@ -154,48 +151,73 @@
                     <template x-if="comment.is_deleted">
                         <p class="italic text-neutral-400">삭제된 댓글입니다.</p>
                     </template>
-                    <template x-if="!comment.is_deleted">
+                    <template x-if="!comment.is_deleted && editingComment?.id !== comment.id">
                         <p class="whitespace-pre-wrap text-neutral-700" x-text="comment.content"></p>
+                    </template>
+                    {{-- Edit Form --}}
+                    <template x-if="!comment.is_deleted && editingComment?.id === comment.id">
+                        <form @submit.prevent="updateComment(comment)" class="space-y-3">
+                            <textarea
+                                x-model="editContent"
+                                rows="3"
+                                class="input w-full resize-none"
+                                maxlength="1000"
+                            ></textarea>
+                            <div class="flex justify-end gap-2">
+                                <button type="button" @click="cancelEdit()" class="btn-outline text-sm">취소</button>
+                                <button
+                                    type="submit"
+                                    class="btn-primary text-sm"
+                                    :disabled="!editContent.trim() || submitting"
+                                >
+                                    수정
+                                </button>
+                            </div>
+                        </form>
                     </template>
                 </div>
 
                 {{-- Comment Actions --}}
                 <div class="mt-4 flex items-center gap-4" x-show="!comment.is_deleted">
-                    @auth
-                    <button
-                        @click="toggleLike(comment)"
-                        class="flex items-center gap-1 text-sm transition-colors"
-                        :class="comment.is_liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'"
-                        :dusk="'comment-like-button-' + comment.id"
-                    >
-                        <svg class="h-4 w-4" :fill="comment.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        <span x-text="comment.like_count"></span>
-                    </button>
-                    <button
-                        @click="startReply(comment)"
-                        class="flex items-center gap-1 text-sm text-neutral-500 transition-colors hover:text-primary-600"
-                        :dusk="'comment-reply-button-' + comment.id"
-                    >
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                        </svg>
-                        답글
-                    </button>
-                    @else
-                    <span class="flex items-center gap-1 text-sm text-neutral-500">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                        <span x-text="comment.like_count"></span>
-                    </span>
-                    @endauth
+                    {{-- 로그인 사용자: 좋아요/답글 버튼 --}}
+                    <template x-if="isAuthenticated">
+                        <div class="flex items-center gap-4">
+                            <button
+                                @click="toggleLike(comment)"
+                                class="flex items-center gap-1 text-sm transition-colors"
+                                :class="comment.is_liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'"
+                                :dusk="'comment-like-button-' + comment.id"
+                            >
+                                <svg class="h-4 w-4" :fill="comment.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                <span x-text="comment.like_count"></span>
+                            </button>
+                            <button
+                                @click="startReply(comment)"
+                                class="flex items-center gap-1 text-sm text-neutral-500 transition-colors hover:text-primary-600"
+                                :dusk="'comment-reply-button-' + comment.id"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                </svg>
+                                답글
+                            </button>
+                        </div>
+                    </template>
+                    {{-- 비로그인 사용자: 좋아요 수만 표시 --}}
+                    <template x-if="!isAuthenticated">
+                        <span class="flex items-center gap-1 text-sm text-neutral-500">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            <span x-text="comment.like_count"></span>
+                        </span>
+                    </template>
                 </div>
 
-                {{-- Reply Form --}}
-                @auth
-                <div x-show="replyingTo === comment.id" class="mt-4 border-t border-neutral-100 pt-4">
+                {{-- Reply Form (로그인 사용자만) --}}
+                <div x-show="isAuthenticated && replyingTo === comment.id" class="mt-4 border-t border-neutral-100 pt-4" x-cloak>
                     <form @submit.prevent="submitReply(comment.id)">
                         <textarea
                             x-model="replyContent"
@@ -217,7 +239,6 @@
                         </div>
                     </form>
                 </div>
-                @endauth
 
                 {{-- Replies --}}
                 <div x-show="comment.replies && comment.replies.length > 0" class="mt-4 space-y-4 border-l-2 border-neutral-100 pl-4">
@@ -248,25 +269,28 @@
                                 </template>
                             </div>
                             <div class="mt-2 flex items-center gap-4" x-show="!reply.is_deleted">
-                                @auth
-                                <button
-                                    @click="toggleLike(reply)"
-                                    class="flex items-center gap-1 text-xs transition-colors"
-                                    :class="reply.is_liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'"
-                                >
-                                    <svg class="h-3.5 w-3.5" :fill="reply.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                    <span x-text="reply.like_count"></span>
-                                </button>
-                                @else
-                                <span class="flex items-center gap-1 text-xs text-neutral-500">
-                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                    </svg>
-                                    <span x-text="reply.like_count"></span>
-                                </span>
-                                @endauth
+                                {{-- 로그인 사용자: 답글 좋아요 버튼 --}}
+                                <template x-if="isAuthenticated">
+                                    <button
+                                        @click="toggleLike(reply)"
+                                        class="flex items-center gap-1 text-xs transition-colors"
+                                        :class="reply.is_liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'"
+                                    >
+                                        <svg class="h-3.5 w-3.5" :fill="reply.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                        <span x-text="reply.like_count"></span>
+                                    </button>
+                                </template>
+                                {{-- 비로그인 사용자: 답글 좋아요 수만 표시 --}}
+                                <template x-if="!isAuthenticated">
+                                    <span class="flex items-center gap-1 text-xs text-neutral-500">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                        <span x-text="reply.like_count"></span>
+                                    </span>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -302,10 +326,18 @@ function commentSection(articleSlug) {
         replyContent: '',
         replyingTo: null,
         editingComment: null,
+        editContent: '',
         sortBy: 'latest',
         loading: true,
         loadingMore: false,
         submitting: false,
+        isAuthenticated: false,
+
+        init() {
+            // 클라이언트 사이드에서 인증 상태 확인
+            this.isAuthenticated = window.auth?.isAuthenticated() || false;
+            this.fetchComments();
+        },
 
         async fetchComments(page = 1) {
             if (page === 1) this.loading = true;
@@ -313,7 +345,11 @@ function commentSection(articleSlug) {
 
             try {
                 const sort = this.sortBy === 'popular' ? 'popular' : 'latest';
-                const response = await fetch(`/api/articles/${this.articleSlug}/comments?page=${page}&sort=${sort}`);
+                const url = `/api/articles/${this.articleSlug}/comments?page=${page}&sort=${sort}`;
+                // 로그인 사용자는 인증 토큰 포함하여 요청 (is_mine 필드 정확히 반환받기 위함)
+                const response = this.isAuthenticated
+                    ? await window.auth.fetch(url)
+                    : await fetch(url);
 
                 if (!response.ok) {
                     console.warn('Comments API returned:', response.status);
@@ -341,13 +377,8 @@ function commentSection(articleSlug) {
 
             this.submitting = true;
             try {
-                const response = await fetch(`/api/articles/${this.articleSlug}/comments`, {
+                const response = await window.auth.fetch(`/api/articles/${this.articleSlug}/comments`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
                     body: JSON.stringify({ content: this.newComment })
                 });
 
@@ -359,6 +390,7 @@ function commentSection(articleSlug) {
                     alert(error.message || '댓글 작성에 실패했습니다.');
                 }
             } catch (error) {
+                if (error.status === 401) return; // Already handled by auth.fetch
                 console.error('Failed to submit comment:', error);
                 alert('댓글 작성에 실패했습니다.');
             } finally {
@@ -381,13 +413,8 @@ function commentSection(articleSlug) {
 
             this.submitting = true;
             try {
-                const response = await fetch(`/api/comments/${commentId}/replies`, {
+                const response = await window.auth.fetch(`/api/comments/${commentId}/replies`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
                     body: JSON.stringify({ content: this.replyContent })
                 });
 
@@ -400,6 +427,7 @@ function commentSection(articleSlug) {
                     alert(error.message || '답글 작성에 실패했습니다.');
                 }
             } catch (error) {
+                if (error.status === 401) return; // Already handled by auth.fetch
                 console.error('Failed to submit reply:', error);
                 alert('답글 작성에 실패했습니다.');
             } finally {
@@ -409,12 +437,8 @@ function commentSection(articleSlug) {
 
         async toggleLike(comment) {
             try {
-                const response = await fetch(`/api/comments/${comment.id}/like`, {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
+                const response = await window.auth.fetch(`/api/comments/${comment.id}/like`, {
+                    method: 'POST'
                 });
 
                 if (response.ok) {
@@ -423,25 +447,53 @@ function commentSection(articleSlug) {
                     comment.like_count = data.data.like_count;
                 }
             } catch (error) {
+                if (error.status === 401) return; // Already handled by auth.fetch
                 console.error('Failed to toggle like:', error);
             }
         },
 
         editComment(comment) {
             this.editingComment = comment;
-            // TODO: Implement edit modal
+            this.editContent = comment.content;
+        },
+
+        cancelEdit() {
+            this.editingComment = null;
+            this.editContent = '';
+        },
+
+        async updateComment(comment) {
+            if (!this.editContent.trim() || this.submitting) return;
+
+            this.submitting = true;
+            try {
+                const response = await window.auth.fetch(`/api/comments/${comment.id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ content: this.editContent })
+                });
+
+                if (response.ok) {
+                    comment.content = this.editContent;
+                    this.cancelEdit();
+                } else {
+                    const error = await response.json();
+                    alert(error.message || '댓글 수정에 실패했습니다.');
+                }
+            } catch (error) {
+                if (error.status === 401) return; // Already handled by auth.fetch
+                console.error('Failed to update comment:', error);
+                alert('댓글 수정에 실패했습니다.');
+            } finally {
+                this.submitting = false;
+            }
         },
 
         async deleteComment(commentId) {
             if (!confirm('정말 이 댓글을 삭제하시겠습니까?')) return;
 
             try {
-                const response = await fetch(`/api/comments/${commentId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
+                const response = await window.auth.fetch(`/api/comments/${commentId}`, {
+                    method: 'DELETE'
                 });
 
                 if (response.ok) {
@@ -451,6 +503,7 @@ function commentSection(articleSlug) {
                     alert(error.message || '댓글 삭제에 실패했습니다.');
                 }
             } catch (error) {
+                if (error.status === 401) return; // Already handled by auth.fetch
                 console.error('Failed to delete comment:', error);
                 alert('댓글 삭제에 실패했습니다.');
             }

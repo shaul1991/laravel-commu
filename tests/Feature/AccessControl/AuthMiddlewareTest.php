@@ -41,6 +41,7 @@ final class AuthMiddlewareTest extends TestCase
     #[Test]
     public function write_page_returns_200(): void
     {
+        // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/write');
 
         $response->assertStatus(200);
@@ -57,6 +58,7 @@ final class AuthMiddlewareTest extends TestCase
     #[Test]
     public function article_edit_page_returns_200(): void
     {
+        // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/articles/test-slug/edit');
 
         $response->assertStatus(200);
@@ -73,6 +75,7 @@ final class AuthMiddlewareTest extends TestCase
     #[Test]
     public function settings_page_returns_200(): void
     {
+        // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/settings');
 
         $response->assertStatus(200);
@@ -89,6 +92,7 @@ final class AuthMiddlewareTest extends TestCase
     #[Test]
     public function my_articles_page_returns_200(): void
     {
+        // SPA 방식: 서버는 페이지를 반환, 클라이언트에서 인증 체크
         $response = $this->get('/me/articles');
 
         $response->assertStatus(200);

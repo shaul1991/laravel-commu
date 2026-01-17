@@ -42,7 +42,8 @@ final class CommentController extends Controller
         $perPage = min((int) $request->input('per_page', 20), 50);
         $comments = $query->paginate($perPage);
 
-        $currentUserId = $request->user()?->id;
+        // 공개 라우트에서도 Bearer 토큰이 있으면 인증 사용자 정보를 가져옴
+        $currentUserId = auth('sanctum')->user()?->id;
 
         return response()->json([
             'data' => $comments->map(fn ($comment) => $this->formatComment($comment, $currentUserId)),
