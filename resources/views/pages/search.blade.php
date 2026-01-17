@@ -69,11 +69,10 @@
                     <span class="text-sm text-neutral-600">카테고리:</span>
                     <select x-model="category" @change="search()" class="input py-1.5 text-sm">
                         <option value="">전체</option>
-                        <option value="Backend">Backend</option>
-                        <option value="Frontend">Frontend</option>
-                        <option value="DevOps">DevOps</option>
-                        <option value="AI">AI</option>
-                        <option value="Database">Database</option>
+                        <option value="기술">기술</option>
+                        <option value="커리어">커리어</option>
+                        <option value="일상">일상</option>
+                        <option value="리뷰">리뷰</option>
                     </select>
                 </div>
             </div>
@@ -94,7 +93,7 @@
                 {{-- Article Results --}}
                 <div x-show="(type === 'all' || type === 'articles') && articles.length > 0">
                     <h2 class="text-lg font-bold text-neutral-900 mb-4" x-show="type === 'all'">
-                        아티클 (<span x-text="articlesMeta.total"></span>)
+                        아티클 (<span x-text="articlesMeta?.total || 0"></span>)
                     </h2>
 
                     <div class="space-y-4">
@@ -106,14 +105,14 @@
                                 <h3 class="font-bold text-neutral-900 mb-2 hover:text-primary-600" x-text="article.title"></h3>
                                 <p class="text-sm text-neutral-600 mb-3 line-clamp-2" x-text="article.excerpt"></p>
                                 <div class="flex items-center gap-4 text-sm text-neutral-500">
-                                    <span class="font-medium text-neutral-700" x-text="article.author.name"></span>
-                                    <span x-text="formatDate(article.published_at)"></span>
+                                    <span class="font-medium text-neutral-700" x-text="article.author?.name || '익명'"></span>
+                                    <span x-text="formatDate(article.published_at || article.created_at)"></span>
                                     <span class="flex items-center gap-1">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
-                                        <span x-text="article.view_count"></span>
+                                        <span x-text="article.view_count || 0"></span>
                                     </span>
                                 </div>
                             </a>
@@ -122,12 +121,12 @@
 
                     {{-- Load More Articles --}}
                     <button
-                        x-show="articlesMeta.current_page < articlesMeta.last_page"
+                        x-show="articlesMeta?.current_page < articlesMeta?.last_page"
                         @click="loadMoreArticles()"
                         class="w-full mt-4 py-3 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                         :disabled="loadingMore"
                     >
-                        <span x-show="!loadingMore">더 보기 (<span x-text="articlesMeta.total - articles.length"></span>개)</span>
+                        <span x-show="!loadingMore">더 보기 (<span x-text="(articlesMeta?.total || 0) - articles.length"></span>개)</span>
                         <span x-show="loadingMore">로딩 중...</span>
                     </button>
                 </div>
@@ -140,13 +139,13 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <template x-for="user in users" :key="user.id">
-                            <a :href="'/users/' + user.username" class="card p-4 hover:shadow-md transition-shadow text-center">
+                            <a :href="'/@' + user.username" class="card p-4 hover:shadow-md transition-shadow text-center">
                                 <template x-if="user.avatar">
                                     <img :src="user.avatar" :alt="user.name" class="w-16 h-16 mx-auto rounded-full object-cover mb-3">
                                 </template>
                                 <template x-if="!user.avatar">
                                     <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xl font-bold mb-3">
-                                        <span x-text="user.name.charAt(0)"></span>
+                                        <span x-text="user.name?.charAt(0) || '?'"></span>
                                     </div>
                                 </template>
                                 <h3 class="font-bold text-neutral-900" x-text="user.name"></h3>
@@ -181,132 +180,145 @@
             </div>
         </div>
     </div>
-</x-layouts.app>
 
-<script>
-function searchPage() {
-    return {
-        query: '',
-        type: 'all',
-        category: '',
-        articles: [],
-        users: [],
-        articlesMeta: { current_page: 1, last_page: 1, total: 0 },
-        loading: false,
-        loadingMore: false,
-        searched: false,
+    @push('scripts')
+    <script>
+    function searchPage() {
+        return {
+            query: '',
+            type: 'all',
+            category: '',
+            articles: [],
+            users: [],
+            articlesMeta: { current_page: 1, last_page: 1, total: 0 },
+            loading: false,
+            loadingMore: false,
+            searched: false,
 
-        get totalResults() {
-            if (this.type === 'articles') return this.articlesMeta.total;
-            if (this.type === 'users') return this.users.length;
-            return this.articlesMeta.total + this.users.length;
-        },
+            get totalResults() {
+                if (this.type === 'articles') return this.articlesMeta?.total || 0;
+                if (this.type === 'users') return this.users.length;
+                return (this.articlesMeta?.total || 0) + this.users.length;
+            },
 
-        init() {
-            // Get query from URL
-            const params = new URLSearchParams(window.location.search);
-            this.query = params.get('q') || '';
-            this.type = params.get('type') || 'all';
-            this.category = params.get('category') || '';
+            init() {
+                // Get query from URL
+                const params = new URLSearchParams(window.location.search);
+                this.query = params.get('q') || '';
+                this.type = params.get('type') || 'all';
+                this.category = params.get('category') || '';
 
-            if (this.query && this.query.length >= 2) {
-                this.search();
-            }
-        },
+                if (this.query && this.query.length >= 2) {
+                    this.search();
+                }
+            },
 
-        async search() {
-            if (!this.query || this.query.length < 2) {
-                this.searched = false;
-                this.articles = [];
-                this.users = [];
-                return;
-            }
-
-            this.loading = true;
-            this.searched = true;
-
-            // Update URL
-            const params = new URLSearchParams();
-            params.set('q', this.query);
-            if (this.type !== 'all') params.set('type', this.type);
-            if (this.category) params.set('category', this.category);
-            window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
-
-            try {
-                const promises = [];
-
-                if (this.type === 'all' || this.type === 'articles') {
-                    const articleParams = new URLSearchParams({
-                        q: this.query,
-                        per_page: 10
-                    });
-                    if (this.category) articleParams.set('category', this.category);
-
-                    promises.push(
-                        fetch(`/api/search/articles?${articleParams}`)
-                            .then(r => r.json())
-                            .then(data => {
-                                this.articles = data.data;
-                                this.articlesMeta = data.meta;
-                            })
-                    );
+            async search() {
+                if (!this.query || this.query.length < 2) {
+                    this.searched = false;
+                    this.articles = [];
+                    this.users = [];
+                    return;
                 }
 
-                if (this.type === 'all' || this.type === 'users') {
-                    promises.push(
-                        fetch(`/api/search/users?q=${encodeURIComponent(this.query)}&limit=12`)
-                            .then(r => r.json())
-                            .then(data => {
-                                this.users = data.data;
-                            })
-                    );
-                }
+                this.loading = true;
+                this.searched = true;
 
-                await Promise.all(promises);
-            } catch (error) {
-                console.error('Search failed:', error);
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async loadMoreArticles() {
-            if (this.loadingMore || this.articlesMeta.current_page >= this.articlesMeta.last_page) return;
-
-            this.loadingMore = true;
-            try {
-                const params = new URLSearchParams({
-                    q: this.query,
-                    per_page: 10,
-                    page: this.articlesMeta.current_page + 1
-                });
+                // Update URL
+                const params = new URLSearchParams();
+                params.set('q', this.query);
+                if (this.type !== 'all') params.set('type', this.type);
                 if (this.category) params.set('category', this.category);
+                window.history.replaceState({}, '', `${window.location.pathname}?${params}`);
 
-                const response = await fetch(`/api/search/articles?${params}`);
-                const data = await response.json();
+                try {
+                    const promises = [];
 
-                this.articles = [...this.articles, ...data.data];
-                this.articlesMeta = data.meta;
-            } catch (error) {
-                console.error('Load more failed:', error);
-            } finally {
-                this.loadingMore = false;
+                    if (this.type === 'all' || this.type === 'articles') {
+                        const articleParams = new URLSearchParams({
+                            q: this.query,
+                            per_page: '10'
+                        });
+                        if (this.category) articleParams.set('category', this.category);
+
+                        promises.push(
+                            fetch(`/api/search/articles?${articleParams}`)
+                                .then(r => r.json())
+                                .then(data => {
+                                    this.articles = data.data || [];
+                                    this.articlesMeta = data.meta || { current_page: 1, last_page: 1, total: 0 };
+                                })
+                                .catch(() => {
+                                    this.articles = [];
+                                    this.articlesMeta = { current_page: 1, last_page: 1, total: 0 };
+                                })
+                        );
+                    } else {
+                        this.articles = [];
+                    }
+
+                    if (this.type === 'all' || this.type === 'users') {
+                        promises.push(
+                            fetch(`/api/search/users?q=${encodeURIComponent(this.query)}&limit=12`)
+                                .then(r => r.json())
+                                .then(data => {
+                                    this.users = data.data || [];
+                                })
+                                .catch(() => {
+                                    this.users = [];
+                                })
+                        );
+                    } else {
+                        this.users = [];
+                    }
+
+                    await Promise.all(promises);
+                } catch (error) {
+                    console.error('Search failed:', error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            async loadMoreArticles() {
+                if (this.loadingMore || !this.articlesMeta || this.articlesMeta.current_page >= this.articlesMeta.last_page) return;
+
+                this.loadingMore = true;
+                try {
+                    const params = new URLSearchParams({
+                        q: this.query,
+                        per_page: '10',
+                        page: String(this.articlesMeta.current_page + 1)
+                    });
+                    if (this.category) params.set('category', this.category);
+
+                    const response = await fetch(`/api/search/articles?${params}`);
+                    const data = await response.json();
+
+                    this.articles = [...this.articles, ...(data.data || [])];
+                    this.articlesMeta = data.meta || this.articlesMeta;
+                } catch (error) {
+                    console.error('Load more failed:', error);
+                } finally {
+                    this.loadingMore = false;
+                }
+            },
+
+            formatDate(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                const now = new Date();
+                const diff = now - date;
+                const days = Math.floor(diff / 86400000);
+
+                if (days < 1) return '오늘';
+                if (days < 7) return `${days}일 전`;
+                if (days < 30) return `${Math.floor(days / 7)}주 전`;
+
+                return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
             }
-        },
-
-        formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            const now = new Date();
-            const diff = now - date;
-            const days = Math.floor(diff / 86400000);
-
-            if (days < 1) return '오늘';
-            if (days < 7) return `${days}일 전`;
-            if (days < 30) return `${Math.floor(days / 7)}주 전`;
-
-            return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
-        }
-    };
-}
-</script>
+        };
+    }
+    </script>
+    @endpush
+</x-layouts.app>

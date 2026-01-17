@@ -78,10 +78,14 @@ final class ArticleController extends Controller
             throw new NotFoundException('Article not found');
         }
 
-        // Increment view count for published articles
+        // Increment view count for published articles (once per day per IP)
         if ($article->status === 'published') {
-            $article->increment('view_count');
-            $article->refresh();
+            $viewKey = 'article_view:'.$article->id.':'.md5($request->ip().date('Y-m-d'));
+            if (! cache()->has($viewKey)) {
+                $article->increment('view_count');
+                $article->refresh();
+                cache()->put($viewKey, true, now()->addDay());
+            }
         }
 
         return response()->json([
@@ -192,7 +196,7 @@ final class ArticleController extends Controller
 
         return response()->json([
             'data' => [
-                'liked' => $result->liked,
+                'is_liked' => $result->liked,
                 'like_count' => $result->likeCount,
             ],
         ]);
@@ -256,6 +260,7 @@ final class ArticleController extends Controller
             'category' => $article->category,
             'view_count' => $article->view_count,
             'like_count' => $article->like_count,
+            'reading_time' => $this->calculateReadingTime($article->content_html),
             'author' => $this->formatAuthor($article->author),
             'published_at' => $article->published_at?->toIso8601String(),
         ];
@@ -285,6 +290,7 @@ final class ArticleController extends Controller
             'status' => $article->status,
             'view_count' => $article->view_count,
             'like_count' => $article->like_count,
+            'reading_time' => $this->calculateReadingTime($article->content_html),
             'author' => $this->formatAuthor($article->author),
             'published_at' => $article->published_at?->toIso8601String(),
             'created_at' => $article->created_at->toIso8601String(),
@@ -310,5 +316,17 @@ final class ArticleController extends Controller
         }
 
         return mb_substr($text, 0, $length).'...';
+    }
+
+    /**
+     * Calculate reading time in minutes based on content.
+     * Average reading speed: ~500 characters per minute for Korean text.
+     */
+    private function calculateReadingTime(string $html): int
+    {
+        $text = strip_tags($html);
+        $characterCount = mb_strlen($text);
+
+        return max(1, (int) ceil($characterCount / 500));
     }
 }

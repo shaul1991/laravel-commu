@@ -57,7 +57,7 @@ final class LikeArticleTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'data' => [
-                    'liked' => true,
+                    'is_liked' => true,
                     'like_count' => 1,
                 ],
             ]);
@@ -103,7 +103,7 @@ final class LikeArticleTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'data' => [
-                    'liked' => false,
+                    'is_liked' => false,
                     'like_count' => 0,
                 ],
             ]);

@@ -34,7 +34,7 @@ Route::prefix('auth')->group(function () {
 // Article Routes (Public - with optional auth support via controller)
 Route::get('/articles', [ArticleController::class, 'index']);
 Route::get('/articles/{slug}', [ArticleController::class, 'show'])
-    ->where('slug', '^(?!drafts$)[a-z0-9-]+$');
+    ->where('slug', '^(?!drafts$)[^/]+$');
 
 // Comment Routes (Public)
 Route::get('/articles/{slug}/comments', [CommentController::class, 'index']);

@@ -8,12 +8,12 @@
 @props(['articleSlug'])
 
 <section
-    class="mx-auto mt-12 max-w-4xl lg:mx-0 lg:max-w-none"
+    class="mt-12"
     x-data="commentSection('{{ $articleSlug }}')"
     x-init="fetchComments()"
 >
     <h2 class="mb-6 text-xl font-bold text-neutral-900">
-        댓글 <span class="text-neutral-500" x-text="'(' + meta.total + ')'"></span>
+        댓글 <span class="text-neutral-500" x-text="'(' + (meta?.total || 0) + ')'"></span>
     </h2>
 
     {{-- Comment Form --}}
@@ -269,7 +269,7 @@
         </template>
 
         {{-- Empty State --}}
-        <div x-show="comments.length === 0 && !loading" class="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+        <div x-show="(comments || []).length === 0 && !loading" class="rounded-xl border border-neutral-200 bg-white p-8 text-center">
             <svg class="mx-auto h-12 w-12 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
@@ -277,7 +277,7 @@
         </div>
 
         {{-- Load More --}}
-        <div x-show="meta.current_page < meta.last_page" class="text-center">
+        <div x-show="meta?.current_page < meta?.last_page" class="text-center">
             <button @click="loadMore()" class="btn-outline" :disabled="loadingMore">
                 <span x-show="!loadingMore">더 보기</span>
                 <span x-show="loadingMore">로딩 중...</span>
@@ -308,14 +308,20 @@ function commentSection(articleSlug) {
             try {
                 const sort = this.sortBy === 'popular' ? 'popular' : 'latest';
                 const response = await fetch(`/api/articles/${this.articleSlug}/comments?page=${page}&sort=${sort}`);
+
+                if (!response.ok) {
+                    console.warn('Comments API returned:', response.status);
+                    return;
+                }
+
                 const data = await response.json();
 
                 if (page === 1) {
-                    this.comments = data.data;
+                    this.comments = data?.data || [];
                 } else {
-                    this.comments = [...this.comments, ...data.data];
+                    this.comments = [...this.comments, ...(data?.data || [])];
                 }
-                this.meta = data.meta;
+                this.meta = data?.meta || { total: 0, current_page: 1, last_page: 1 };
             } catch (error) {
                 console.error('Failed to fetch comments:', error);
             } finally {
