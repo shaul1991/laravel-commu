@@ -116,11 +116,21 @@ final class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()->delete();
+        $user = $request->user();
+
+        // Delete API token if it exists (not TransientToken from session auth)
+        if ($user) {
+            $token = $user->currentAccessToken();
+            if ($token && method_exists($token, 'delete')) {
+                $token->delete();
+            }
+        }
+
+        // Always try to logout from web guard (handles both session and stateless auth)
+        Auth::guard('web')->logout();
 
         // Clear web session if available
         if ($request->hasSession()) {
-            Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }
