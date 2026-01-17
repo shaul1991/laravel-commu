@@ -216,12 +216,12 @@ pipeline {
                 configFileProvider([
                     configFile(fileId: env.ENV_CONFIG_FILE_ID, variable: 'ENV_FILE_PATH')
                 ]) {
+                    // Jenkins 컨테이너 내에서 cat으로 읽고, docker run으로 전달
                     sh """
-                        docker run --rm \
-                            -v \${ENV_FILE_PATH}:/tmp/.env:ro \
+                        cat \${ENV_FILE_PATH} | docker run --rm -i \
                             -v ${DEPLOY_PATH}:/var/www/html \
                             alpine:latest \
-                            cp /tmp/.env /var/www/html/.env
+                            sh -c 'cat > /var/www/html/.env'
                     """
                     echo ".env file injected from Jenkins Config File Provider"
                 }
