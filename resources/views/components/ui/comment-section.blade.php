@@ -112,7 +112,7 @@
 
                     {{-- Actions Dropdown (로그인 사용자만) --}}
                     <div x-show="isAuthenticated" class="relative" x-data="{ open: false }" x-cloak>
-                        <button @click="open = !open" class="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600">
+                        <button @click="open = !open" class="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600" :dusk="'comment-menu-' + comment.id">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                             </svg>
@@ -183,6 +183,7 @@
                                 @click="toggleLike(comment)"
                                 class="flex items-center gap-1 text-sm transition-colors"
                                 :class="comment.is_liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'"
+                                dusk="comment-like-button"
                             >
                                 <svg class="h-4 w-4" :fill="comment.is_liked ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -192,6 +193,7 @@
                             <button
                                 @click="startReply(comment)"
                                 class="flex items-center gap-1 text-sm text-neutral-500 transition-colors hover:text-primary-600"
+                                dusk="comment-reply-button"
                             >
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
