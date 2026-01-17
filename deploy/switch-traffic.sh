@@ -1,38 +1,31 @@
-#!/bin/bash
+#!/bin/sh
 # ==========================================
-# Caddy 트래픽 전환 스크립트
+# 트래픽 전환 스크립트
+# Blue-Green 배포에서 Caddy 트래픽 전환
 # ==========================================
 
-set -e
-
-DEPLOY_PATH="/var/www/laravel-commu"
+TARGET_PORT=$1
+DEPLOY_DIR="/var/www/html/deploy"
 CADDY_CONFIG="/etc/caddy/Caddyfile"
-NEW_PORT=$1
 
-# 색상 정의
-GREEN='\033[0;32m'
-NC='\033[0m'
-
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-if [ -z "$NEW_PORT" ]; then
-    echo "Usage: $0 <port>"
+if [ -z "$TARGET_PORT" ]; then
+    echo "Error: TARGET_PORT is required"
     exit 1
 fi
 
-log_info "Switching traffic to port ${NEW_PORT}..."
+echo "Switching traffic to port: $TARGET_PORT"
 
-# Caddy 설정 업데이트
-# upstream 포트를 새 포트로 변경
-sed -i "s/localhost:1000[01]/localhost:${NEW_PORT}/g" "$CADDY_CONFIG"
+# 현재 포트 저장
+echo "$TARGET_PORT" > "$DEPLOY_DIR/current-port.txt"
 
-# Caddy 리로드 (무중단)
-log_info "Reloading Caddy..."
-caddy reload --config "$CADDY_CONFIG"
+# Caddyfile에서 reverse_proxy 포트 변경
+# localhost:10000 또는 localhost:10001을 TARGET_PORT로 변경
+if [ -f "$CADDY_CONFIG" ]; then
+    sed -i "s/localhost:1000[01]/localhost:$TARGET_PORT/g" "$CADDY_CONFIG"
+    echo "Caddyfile updated successfully"
+else
+    echo "Warning: Caddyfile not found at $CADDY_CONFIG"
+fi
 
-# 현재 포트 기록
-echo "$NEW_PORT" > "${DEPLOY_PATH}/deploy/current-port.txt"
-
-log_info "Traffic switched to port ${NEW_PORT}"
+echo "Traffic switch configuration completed"
+echo "Note: Run 'caddy reload' on the host to apply changes"

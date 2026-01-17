@@ -327,7 +327,14 @@ pipeline {
                             -v ${DEPLOY_PATH}:/var/www/html \
                             -v /etc/caddy:/etc/caddy \
                             alpine:latest \
-                            sh -c "/var/www/html/deploy/switch-traffic.sh ${TARGET_PORT}"
+                            sh /var/www/html/deploy/switch-traffic.sh ${TARGET_PORT}
+                    """
+
+                    // Caddy reload (호스트에서 실행)
+                    sh """
+                        docker exec caddy caddy reload --config /etc/caddy/Caddyfile --force 2>/dev/null || \
+                        systemctl reload caddy 2>/dev/null || \
+                        echo "Warning: Caddy reload failed. Manual reload may be required."
                     """
 
                     // 배포 버전 기록
@@ -403,7 +410,14 @@ pipeline {
                             -v ${DEPLOY_PATH}:/var/www/html \
                             -v /etc/caddy:/etc/caddy \
                             alpine:latest \
-                            sh -c "/var/www/html/deploy/switch-traffic.sh ${rollbackPort}"
+                            sh /var/www/html/deploy/switch-traffic.sh ${rollbackPort}
+                    """
+
+                    // Caddy reload
+                    sh """
+                        docker exec caddy caddy reload --config /etc/caddy/Caddyfile --force 2>/dev/null || \
+                        systemctl reload caddy 2>/dev/null || \
+                        echo "Warning: Caddy reload failed. Manual reload may be required."
                     """
 
                     echo "Rolled back to ${rollbackEnv} (port ${rollbackPort})"
