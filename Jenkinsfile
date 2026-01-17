@@ -243,12 +243,17 @@ pipeline {
                         docker rm ${PROJECT_NAME}-${TARGET_ENV} 2>/dev/null || true
                     """
 
-                    // 새 컨테이너 시작 (docker compose를 직접 실행)
+                    // 새 컨테이너 시작 (docker compose를 docker-cli 컨테이너에서 실행)
                     sh """
-                        APP_PATH=${DEPLOY_PATH} \
-                        STORAGE_PATH=${STORAGE_PATH} \
-                        ENV_FILE=${DEPLOY_PATH}/.env \
-                        docker compose -f ${DEPLOY_PATH}/docker/docker-compose.prod.yml up -d ${TARGET_ENV}
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                            -w ${DEPLOY_PATH} \
+                            -e APP_PATH=${DEPLOY_PATH} \
+                            -e STORAGE_PATH=${STORAGE_PATH} \
+                            -e ENV_FILE=${DEPLOY_PATH}/.env \
+                            docker/compose:latest \
+                            -f docker/docker-compose.prod.yml up -d ${TARGET_ENV}
                     """
 
                     // Laravel 캐시 생성 (컨테이너 내에서 실행)
