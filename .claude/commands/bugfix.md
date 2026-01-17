@@ -187,13 +187,28 @@ QA 팀이 버그 수정을 검증한다:
 - `mcp__playwright__browser_click`: 액션 수행
 - `mcp__playwright__browser_fill_form`: 폼 입력
 
-## Git Branch 규칙
+## Git Worktree 규칙
+
+**이유**: 병렬 작업 시 다른 브랜치에 영향을 주지 않기 위함
 
 ```bash
-# 브랜치 생성
-git checkout -b bugfix/ECS-XX-간단한-설명
+# 1. worktree 디렉토리 존재 여부 확인
+ls ../laravel-commu-worktrees/ 2>/dev/null || mkdir -p ../laravel-commu-worktrees
 
-# 커밋 메시지
+# 2. git worktree로 새 브랜치 생성
+git worktree add -b bugfix/ECS-XX ../laravel-commu-worktrees/bugfix-ECS-XX master
+
+# 3. 해당 worktree 디렉토리에서 작업 수행
+cd ../laravel-commu-worktrees/bugfix-ECS-XX
+```
+
+**Worktree 제거 시점**: PR이 머지된 후 제거
+```bash
+git worktree remove ../laravel-commu-worktrees/bugfix-ECS-XX
+```
+
+### 커밋 메시지
+```
 fix(ECS-XX): 버그 수정 요약
 
 - 상세 내용
