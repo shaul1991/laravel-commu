@@ -1,0 +1,45 @@
+# ==========================================
+# Base Dockerfile
+# - PHP + 시스템 패키지 + 확장만 포함
+# - 한 번만 빌드하고 재사용
+# ==========================================
+
+FROM php:8.4-fpm-alpine
+
+# 시스템 패키지 설치
+RUN apk add --no-cache \
+    git \
+    libpq-dev \
+    supervisor \
+    nginx \
+    curl \
+    nodejs \
+    npm
+
+# PHP 확장 설치
+RUN docker-php-ext-install -j$(nproc) \
+    pdo \
+    pdo_pgsql \
+    pcntl \
+    opcache
+
+# PECL 확장 설치
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS linux-headers openssl-dev \
+    && pecl install redis mongodb excimer \
+    && docker-php-ext-enable redis mongodb excimer \
+    && apk del .build-deps
+
+# Composer 설치
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# PHP 설정 디렉토리 생성
+RUN mkdir -p /usr/local/etc/php/conf.d
+
+# 작업 디렉토리 설정
+WORKDIR /var/www/html
+
+# 기본 Nginx, PHP-FPM 설정은 배포 시 볼륨으로 마운트
+
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
