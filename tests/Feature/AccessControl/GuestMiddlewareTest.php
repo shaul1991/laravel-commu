@@ -6,6 +6,7 @@ namespace Tests\Feature\AccessControl;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -75,5 +76,65 @@ final class GuestMiddlewareTest extends TestCase
         $response = $this->actingAs($this->user)->get('/forgot-password');
 
         $response->assertRedirect('/');
+    }
+
+    #[Test]
+    public function user_can_access_login_page_after_logout_via_api(): void
+    {
+        // Step 1: Login via API (this establishes session and creates token)
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'email' => 'hong@example.com',
+            'password' => 'Password123!',
+        ]);
+
+        $loginResponse->assertStatus(200);
+        $token = $loginResponse->json('data.token');
+
+        // Verify we are now authenticated
+        $this->assertAuthenticated('web');
+
+        // Step 2: Logout via API with token
+        $logoutResponse = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/auth/logout');
+
+        $logoutResponse->assertStatus(200);
+
+        // Step 3: Simulate a fresh browser request by refreshing the application
+        // This clears the test's internal auth state
+        $this->refreshApplication();
+
+        // Step 4: Make a fresh request to login page
+        $response = $this->get('/login');
+
+        $response->assertStatus(200);
+        $response->assertSee('로그인');
+    }
+
+    #[Test]
+    public function user_can_access_register_page_after_logout_via_api(): void
+    {
+        // Step 1: Login via API
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'email' => 'hong@example.com',
+            'password' => 'Password123!',
+        ]);
+
+        $loginResponse->assertStatus(200);
+        $token = $loginResponse->json('data.token');
+
+        // Step 2: Logout via API
+        $logoutResponse = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/auth/logout');
+
+        $logoutResponse->assertStatus(200);
+
+        // Step 3: Simulate a fresh browser request
+        $this->refreshApplication();
+
+        // Step 4: Access register page
+        $response = $this->get('/register');
+
+        $response->assertStatus(200);
+        $response->assertSee('회원가입');
     }
 }
