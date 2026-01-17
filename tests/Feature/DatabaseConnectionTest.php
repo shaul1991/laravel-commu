@@ -42,6 +42,8 @@ class DatabaseConnectionTest extends TestCase
 
         // Create
         $id = DB::table('users')->insertGetId([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'username' => 'testuser_'.uniqid(),
             'name' => 'Test User',
             'email' => 'test-'.uniqid().'@example.com',
             'password' => bcrypt('password'),
@@ -114,6 +116,10 @@ class DatabaseConnectionTest extends TestCase
     {
         if (! config('database.connections.mongodb')) {
             $this->markTestSkipped('MongoDB not configured');
+        }
+
+        if (! extension_loaded('mongodb')) {
+            $this->markTestSkipped('MongoDB extension not installed');
         }
 
         try {

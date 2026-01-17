@@ -55,6 +55,35 @@ class User extends AggregateRoot
         return $user;
     }
 
+    /**
+     * Reconstitute a User entity from persistence (no events recorded)
+     */
+    public static function reconstitute(
+        UserId $id,
+        Email $email,
+        Username $username,
+        Password $password,
+        string $name,
+        ?string $bio,
+        ?string $avatarUrl,
+        ?DateTimeImmutable $emailVerifiedAt,
+        DateTimeImmutable $createdAt,
+        DateTimeImmutable $updatedAt
+    ): self {
+        return new self(
+            id: $id,
+            email: $email,
+            username: $username,
+            password: $password,
+            name: $name,
+            bio: $bio,
+            avatarUrl: $avatarUrl,
+            emailVerifiedAt: $emailVerifiedAt,
+            createdAt: $createdAt,
+            updatedAt: $updatedAt
+        );
+    }
+
     public function verifyEmail(): void
     {
         if ($this->emailVerifiedAt !== null) {

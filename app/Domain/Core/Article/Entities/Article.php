@@ -198,4 +198,37 @@ class Article extends AggregateRoot
     {
         return $this->status === ArticleStatus::PUBLISHED;
     }
+
+    /**
+     * Reconstitute an Article entity from persistence data.
+     */
+    public static function reconstitute(
+        ArticleId $id,
+        UserId $authorId,
+        string $title,
+        Slug $slug,
+        Content $content,
+        Category $category,
+        ArticleStatus $status,
+        int $viewCount,
+        int $likeCount,
+        ?DateTimeImmutable $publishedAt,
+        DateTimeImmutable $createdAt,
+        DateTimeImmutable $updatedAt
+    ): self {
+        return new self(
+            id: $id,
+            authorId: $authorId,
+            title: $title,
+            slug: $slug,
+            content: $content,
+            category: $category,
+            status: $status,
+            viewCount: $viewCount,
+            likeCount: $likeCount,
+            publishedAt: $publishedAt,
+            createdAt: $createdAt,
+            updatedAt: $updatedAt
+        );
+    }
 }
