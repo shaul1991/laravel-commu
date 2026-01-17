@@ -31,11 +31,10 @@ pipeline {
 
         // GitHub 설정
         GIT_REPO = 'git@github.com:shaul1991/laravel-commu.git'
-        GIT_CREDENTIALS_ID = 'github-ssh-key'
+        GIT_CREDENTIALS_ID = 'deploy'
 
-        // Slack 설정
+        // Slack 설정 (Jenkins Slack Plugin 미설정 시 알림 스킵)
         SLACK_CHANNEL = '#deployments'
-        SLACK_CREDENTIALS_ID = 'slack-webhook'
     }
 
     stages {
@@ -265,16 +264,20 @@ pipeline {
                     ? "배포 성공: ${PROJECT_NAME} v${env.IMAGE_TAG ?: 'N/A'}"
                     : "롤백 성공: ${PROJECT_NAME}"
 
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: 'good',
-                    message: """
-                        *${message}*
-                        - Branch: ${params.BRANCH}
-                        - Build: #${BUILD_NUMBER}
-                        - URL: https://blogs.shaul.link
-                    """.stripIndent()
-                )
+                try {
+                    slackSend(
+                        channel: env.SLACK_CHANNEL,
+                        color: 'good',
+                        message: """
+                            *${message}*
+                            - Branch: ${params.BRANCH}
+                            - Build: #${BUILD_NUMBER}
+                            - URL: https://blogs.shaul.link
+                        """.stripIndent()
+                    )
+                } catch (Exception e) {
+                    echo "Slack notification skipped: ${e.message}"
+                }
             }
         }
         failure {
@@ -283,16 +286,20 @@ pipeline {
                     ? "배포 실패: ${PROJECT_NAME}"
                     : "롤백 실패: ${PROJECT_NAME}"
 
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: 'danger',
-                    message: """
-                        *${message}*
-                        - Branch: ${params.BRANCH}
-                        - Build: #${BUILD_NUMBER}
-                        - Console: ${BUILD_URL}console
-                    """.stripIndent()
-                )
+                try {
+                    slackSend(
+                        channel: env.SLACK_CHANNEL,
+                        color: 'danger',
+                        message: """
+                            *${message}*
+                            - Branch: ${params.BRANCH}
+                            - Build: #${BUILD_NUMBER}
+                            - Console: ${BUILD_URL}console
+                        """.stripIndent()
+                    )
+                } catch (Exception e) {
+                    echo "Slack notification skipped: ${e.message}"
+                }
 
                 // 배포 실패 시 자동 롤백 시도
                 if (params.ACTION == 'deploy') {
