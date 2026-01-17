@@ -108,4 +108,23 @@ class UserModel extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(UserSettingsModel::class, 'user_id');
     }
+
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccountModel::class, 'user_id');
+    }
+
+    /**
+     * Check if user has a usable password (not OAuth-only user).
+     * OAuth-only users have a password that is a hash of empty string.
+     */
+    public function hasUsablePassword(): bool
+    {
+        if ($this->password === null || $this->password === '') {
+            return false;
+        }
+
+        // Check if password is hash of empty string (OAuth-only user marker)
+        return ! password_verify('', $this->password);
+    }
 }
