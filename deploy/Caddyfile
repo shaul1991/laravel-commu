@@ -1,0 +1,100 @@
+# ==========================================
+# Caddy 프로덕션 설정
+# blogs.shaul.link
+# ==========================================
+
+# 글로벌 설정
+{
+    # 이메일 (Let's Encrypt 인증서용)
+    email admin@shaul.link
+
+    # HTTPS 자동 설정
+    auto_https on
+
+    # 로깅
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
+
+# blogs.shaul.link 도메인
+blogs.shaul.link {
+    # 압축
+    encode gzip zstd
+
+    # 로그
+    log {
+        output file /var/log/caddy/blogs.shaul.link.log
+        format json
+    }
+
+    # 리버스 프록시 (Blue-Green 배포)
+    # 초기값: Blue 컨테이너 (포트 10000)
+    # switch-traffic.sh 스크립트로 동적 전환
+    reverse_proxy localhost:10000 {
+        # 헬스체크
+        health_uri /up
+        health_interval 10s
+        health_timeout 5s
+        health_status 200
+
+        # 헤더 설정
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        # 타임아웃
+        transport http {
+            dial_timeout 30s
+            read_timeout 60s
+            write_timeout 60s
+        }
+    }
+
+    # 보안 헤더
+    header {
+        # XSS 보호
+        X-XSS-Protection "1; mode=block"
+        # Content-Type 스니핑 방지
+        X-Content-Type-Options "nosniff"
+        # 클릭재킹 방지
+        X-Frame-Options "SAMEORIGIN"
+        # HTTPS 강제
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # 리퍼러 정책
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # 권한 정책
+        Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+        # 서버 정보 숨김
+        -Server
+    }
+
+    # 정적 파일 캐싱
+    @static {
+        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # robots.txt
+    handle /robots.txt {
+        respond "User-agent: *\nAllow: /"
+    }
+
+    # favicon
+    handle /favicon.ico {
+        file_server
+        root * /var/www/laravel-commu/public
+    }
+}
+
+# www 리다이렉트
+www.blogs.shaul.link {
+    redir https://blogs.shaul.link{uri} permanent
+}
+
+# Jenkins 프록시 (내부 접근용, 선택사항)
+# jenkins.shaul.link {
+#     reverse_proxy localhost:8888
+# }

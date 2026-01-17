@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master, main, develop]
 
+env:
+  JENKINS_JOB_NAME: laravel-commu-deploy
+
 jobs:
   # ==========================================
   # 코드 품질 검사
@@ -232,3 +235,170 @@ jobs:
       - name: Run Architecture Tests
         run: php artisan test tests/Architecture --stop-on-failure
         continue-on-error: true
+
+  # ==========================================
+  # CI 완료 후 Slack 알림 (master 브랜치만)
+  # ==========================================
+  notify-slack:
+    name: Notify Slack
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, feature-tests, architecture-tests]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Send Slack notification on success
+        if: success()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "CI 성공 - laravel-commu",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n`${{ github.sha }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Message:*\n${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*테스트:* 통과"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*코드 스타일:* OK"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "배포하기",
+                        "emoji": true
+                      },
+                      "style": "primary",
+                      "url": "${{ secrets.JENKINS_URL }}/job/${{ env.JENKINS_JOB_NAME }}/build?token=${{ secrets.JENKINS_BUILD_TOKEN }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Jenkins 열기",
+                        "emoji": true
+                      },
+                      "url": "${{ secrets.JENKINS_URL }}/job/${{ env.JENKINS_JOB_NAME }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "GitHub 보기",
+                        "emoji": true
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+  # ==========================================
+  # CI 실패 시 Slack 알림
+  # ==========================================
+  notify-slack-failure:
+    name: Notify Slack (Failure)
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, feature-tests, architecture-tests]
+    if: failure() && github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Send Slack notification on failure
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "CI 실패 - laravel-commu",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n`${{ github.sha }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Message:*\n${{ github.event.head_commit.message }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "CI 파이프라인이 실패했습니다. GitHub Actions에서 상세 로그를 확인해주세요."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "GitHub Actions 보기",
+                        "emoji": true
+                      },
+                      "style": "danger",
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
