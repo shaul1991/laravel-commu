@@ -214,11 +214,11 @@ pipeline {
             }
             steps {
                 configFileProvider([
-                    configFile(fileId: env.ENV_CONFIG_FILE_ID, targetLocation: "${WORKSPACE}/.env.prod")
+                    configFile(fileId: env.ENV_CONFIG_FILE_ID, variable: 'ENV_FILE_PATH')
                 ]) {
                     sh """
                         docker run --rm \
-                            -v ${WORKSPACE}/.env.prod:/tmp/.env:ro \
+                            -v \${ENV_FILE_PATH}:/tmp/.env:ro \
                             -v ${DEPLOY_PATH}:/var/www/html \
                             alpine:latest \
                             cp /tmp/.env /var/www/html/.env
