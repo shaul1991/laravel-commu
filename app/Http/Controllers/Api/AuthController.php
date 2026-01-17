@@ -14,10 +14,18 @@ use App\Domain\Core\User\Exceptions\InvalidEmailException;
 use App\Domain\Core\User\Exceptions\InvalidUsernameException;
 use App\Domain\Core\User\Exceptions\WeakPasswordException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Infrastructure\Persistence\Eloquent\UserModel;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 final class AuthController extends Controller
 {
@@ -121,6 +129,95 @@ final class AuthController extends Controller
                 'email_verified_at' => $user->email_verified_at?->toIso8601String(),
                 'created_at' => $user->created_at->toIso8601String(),
             ],
+        ]);
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $user = UserModel::where('email', $request->validated('email'))->first();
+
+        if ($user) {
+            Password::sendResetLink(['email' => $user->email]);
+        }
+
+        // Always return success to prevent email enumeration
+        return response()->json([
+            'message' => 'Password reset link sent to your email',
+        ]);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Password has been reset successfully',
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Invalid or expired token',
+        ], 400);
+    }
+
+    public function sendVerificationEmail(Request $request): JsonResponse
+    {
+        /** @var UserModel $user */
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Email is already verified',
+            ], 400);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json([
+            'message' => 'Verification email sent',
+        ]);
+    }
+
+    public function verifyEmail(Request $request, int $id, string $hash): JsonResponse
+    {
+        /** @var UserModel $user */
+        $user = $request->user();
+
+        if ($user->getKey() !== $id) {
+            return response()->json([
+                'message' => 'Invalid verification link',
+            ], 403);
+        }
+
+        if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return response()->json([
+                'message' => 'Invalid verification link',
+            ], 403);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Email is already verified',
+            ]);
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+        }
+
+        return response()->json([
+            'message' => 'Email verified successfully',
         ]);
     }
 

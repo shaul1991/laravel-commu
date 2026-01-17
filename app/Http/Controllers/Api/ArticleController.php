@@ -198,6 +198,54 @@ final class ArticleController extends Controller
         ]);
     }
 
+    public function drafts(Request $request): JsonResponse
+    {
+        /** @var UserModel $user */
+        $user = $request->user();
+
+        $drafts = ArticleModel::draft()
+            ->byAuthor($user->id)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'data' => $drafts->map(fn ($article) => $this->formatDraftItem($article)),
+        ]);
+    }
+
+    public function publish(Request $request, string $slug): JsonResponse
+    {
+        /** @var UserModel $user */
+        $user = $request->user();
+
+        $article = ArticleModel::where('slug', $slug)->with('author')->first();
+
+        if (! $article) {
+            throw new NotFoundException('Article not found');
+        }
+
+        if ($article->author_id !== $user->id) {
+            throw new ForbiddenException('You are not authorized to publish this article');
+        }
+
+        if ($article->status === 'published') {
+            return response()->json([
+                'message' => 'Article is already published',
+            ], 422);
+        }
+
+        $article->update([
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        $article->refresh();
+
+        return response()->json([
+            'data' => $this->formatDetail($article),
+        ]);
+    }
+
     private function formatListItem(ArticleModel $article): array
     {
         return [
@@ -210,6 +258,18 @@ final class ArticleController extends Controller
             'like_count' => $article->like_count,
             'author' => $this->formatAuthor($article->author),
             'published_at' => $article->published_at?->toIso8601String(),
+        ];
+    }
+
+    private function formatDraftItem(ArticleModel $article): array
+    {
+        return [
+            'id' => $article->uuid,
+            'title' => $article->title,
+            'slug' => $article->slug,
+            'category' => $article->category,
+            'created_at' => $article->created_at->toIso8601String(),
+            'updated_at' => $article->updated_at->toIso8601String(),
         ];
     }
 
