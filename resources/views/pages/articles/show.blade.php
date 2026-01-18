@@ -143,8 +143,26 @@
                                     </button>
                                 </div>
 
-                                {{-- Share Buttons --}}
                                 <div class="flex items-center gap-2">
+                                    {{-- Author Actions (Edit/Delete) --}}
+                                    <template x-if="article.is_author">
+                                        <div class="flex items-center gap-2 mr-4">
+                                            <a :href="'/articles/' + article.slug + '/edit'" class="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100" title="수정">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                                <span>수정</span>
+                                            </a>
+                                            <button @click="showDeleteModal = true" class="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100" title="삭제">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                <span>삭제</span>
+                                            </button>
+                                        </div>
+                                    </template>
+
+                                    {{-- Share Buttons --}}
                                     <button @click="copyLink()" class="rounded-lg bg-neutral-100 p-2 text-neutral-600 transition-colors hover:bg-neutral-200" title="링크 복사">
                                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
@@ -157,6 +175,25 @@
                                     </a>
                                 </div>
                             </div>
+
+                            {{-- Delete Confirmation Modal --}}
+                            <template x-if="article.is_author">
+                                <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showDeleteModal = false">
+                                    <div class="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" @click.stop>
+                                        <h3 class="text-lg font-bold text-neutral-900">아티클 삭제</h3>
+                                        <p class="mt-2 text-neutral-600">정말로 이 아티클을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+                                        <div class="mt-6 flex justify-end gap-3">
+                                            <button @click="showDeleteModal = false" class="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-200">
+                                                취소
+                                            </button>
+                                            <button @click="deleteArticle()" :disabled="deleting" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+                                                <span x-show="!deleting">삭제</span>
+                                                <span x-show="deleting">삭제 중...</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
 
                             {{-- Author Box --}}
                             <div class="mt-8 rounded-2xl border border-neutral-200 bg-white p-6">
@@ -194,6 +231,8 @@
                 loading: true,
                 error: null,
                 slug: '{{ $slug }}',
+                showDeleteModal: false,
+                deleting: false,
 
                 async init() {
                     await this.fetchArticle();
@@ -204,7 +243,11 @@
                     this.error = null;
 
                     try {
-                        const response = await fetch(`/api/articles/${this.slug}`);
+                        const headers = {
+                            'Accept': 'application/json',
+                            ...window.auth?.getAuthHeaders()
+                        };
+                        const response = await fetch(`/api/articles/${this.slug}`, { headers });
 
                         if (!response.ok) {
                             if (response.status === 404) {
@@ -258,6 +301,39 @@
                     navigator.clipboard.writeText(window.location.href).then(() => {
                         alert('링크가 클립보드에 복사되었습니다.');
                     });
+                },
+
+                async deleteArticle() {
+                    if (!window.auth?.isAuthenticated()) {
+                        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                        return;
+                    }
+
+                    this.deleting = true;
+
+                    try {
+                        const response = await fetch(`/api/articles/${this.slug}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                ...window.auth.getAuthHeaders()
+                            }
+                        });
+
+                        if (response.ok) {
+                            window.location.href = '/articles';
+                        } else {
+                            const data = await response.json();
+                            alert(data.message || '아티클 삭제에 실패했습니다.');
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete article:', error);
+                        alert('네트워크 오류가 발생했습니다.');
+                    } finally {
+                        this.deleting = false;
+                        this.showDeleteModal = false;
+                    }
                 },
 
                 formatDate(dateString) {

@@ -89,7 +89,7 @@ final class ArticleController extends Controller
         }
 
         return response()->json([
-            'data' => $this->formatDetail($article),
+            'data' => $this->formatDetail($article, $isAuthor),
         ]);
     }
 
@@ -296,7 +296,7 @@ final class ArticleController extends Controller
         ];
     }
 
-    private function formatDetail(ArticleModel $article): array
+    private function formatDetail(ArticleModel $article, bool $isAuthor = false): array
     {
         return [
             'id' => $article->uuid,
@@ -310,6 +310,7 @@ final class ArticleController extends Controller
             'like_count' => $article->like_count,
             'reading_time' => $this->calculateReadingTime($article->content_html),
             'author' => $this->formatAuthor($article->author),
+            'is_author' => $isAuthor,
             'published_at' => $article->published_at?->toIso8601String(),
             'created_at' => $article->created_at->toIso8601String(),
             'updated_at' => $article->updated_at->toIso8601String(),
