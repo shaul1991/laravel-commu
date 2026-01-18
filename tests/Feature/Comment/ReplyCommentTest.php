@@ -8,7 +8,6 @@ use App\Infrastructure\Persistence\Eloquent\ArticleModel;
 use App\Infrastructure\Persistence\Eloquent\CommentModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class ReplyCommentTest extends TestCase
@@ -34,7 +33,7 @@ final class ReplyCommentTest extends TestCase
 
     public function test_인증된_사용자는_대댓글을_작성할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson("/api/comments/{$this->parentComment->id}/replies", [
             'content' => '대댓글 내용입니다.',
@@ -72,7 +71,7 @@ final class ReplyCommentTest extends TestCase
 
     public function test_2단계_깊이까지만_대댓글을_작성할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // 1단계 대댓글 생성
         $firstReply = CommentModel::factory()->create([
@@ -92,7 +91,7 @@ final class ReplyCommentTest extends TestCase
 
     public function test_존재하지_않는_댓글에_대댓글을_작성할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson('/api/comments/99999/replies', [
             'content' => '대댓글 내용',
@@ -103,7 +102,7 @@ final class ReplyCommentTest extends TestCase
 
     public function test_대댓글_작성시_부모_댓글의_reply_count가_증가한다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $initialCount = $this->parentComment->reply_count;
 
@@ -117,7 +116,7 @@ final class ReplyCommentTest extends TestCase
 
     public function test_삭제된_댓글에는_대댓글을_작성할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $deletedComment = CommentModel::factory()->create([
             'article_id' => $this->article->id,

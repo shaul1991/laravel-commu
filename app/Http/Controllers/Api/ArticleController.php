@@ -95,6 +95,7 @@ final class ArticleController extends Controller
 
     /**
      * Try to get authenticated user from bearer token without middleware.
+     * For Passport JWT tokens, extract token ID and find the user.
      */
     private function getAuthenticatedUser(Request $request): ?UserModel
     {
@@ -104,16 +105,33 @@ final class ArticleController extends Controller
             return null;
         }
 
-        // Check personal access token
-        $token = \Laravel\Sanctum\PersonalAccessToken::findToken($bearerToken);
+        try {
+            // Parse JWT to get token ID
+            $parts = explode('.', $bearerToken);
+            if (count($parts) !== 3) {
+                return null;
+            }
 
-        if (! $token) {
+            $payload = json_decode(base64_decode($parts[1]), true);
+            $tokenId = $payload['jti'] ?? null;
+
+            if (! $tokenId) {
+                return null;
+            }
+
+            // Find Passport token
+            $token = \Laravel\Passport\Token::find($tokenId);
+
+            if (! $token || $token->revoked) {
+                return null;
+            }
+
+            $user = $token->user;
+
+            return $user instanceof UserModel ? $user : null;
+        } catch (\Exception $e) {
             return null;
         }
-
-        $user = $token->tokenable;
-
-        return $user instanceof UserModel ? $user : null;
     }
 
     public function store(CreateArticleRequest $request): JsonResponse

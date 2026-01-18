@@ -43,7 +43,7 @@ final class CommentController extends Controller
         $comments = $query->paginate($perPage);
 
         // 공개 라우트에서도 Bearer 토큰이 있으면 인증 사용자 정보를 가져옴
-        $currentUserId = auth('sanctum')->user()?->id;
+        $currentUserId = auth('api')->user()?->id;
 
         return response()->json([
             'data' => $comments->map(fn ($comment) => $this->formatComment($comment, $currentUserId)),

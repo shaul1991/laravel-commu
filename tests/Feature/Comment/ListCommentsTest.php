@@ -8,6 +8,7 @@ use App\Infrastructure\Persistence\Eloquent\ArticleModel;
 use App\Infrastructure\Persistence\Eloquent\CommentModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 final class ListCommentsTest extends TestCase
@@ -21,6 +22,17 @@ final class ListCommentsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
 
         $this->user = UserModel::factory()->create();
         $this->article = ArticleModel::factory()->published()->create();
@@ -173,7 +185,7 @@ final class ListCommentsTest extends TestCase
             'author_id' => $otherUser->id,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->user, 'api')
             ->getJson("/api/articles/{$this->article->slug}/comments");
 
         $response->assertOk()
@@ -233,7 +245,7 @@ final class ListCommentsTest extends TestCase
             'author_id' => $otherUser->id,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->user, 'api')
             ->getJson("/api/articles/{$this->article->slug}/comments");
 
         $response->assertOk();

@@ -6,7 +6,6 @@ namespace Tests\Feature\Settings;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
@@ -28,7 +27,7 @@ final class DeleteAccountTest extends TestCase
 
     public function test_인증된_사용자는_계정을_삭제할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->deleteJson('/api/settings/account', [
             'confirmation' => '삭제합니다',
@@ -53,7 +52,7 @@ final class DeleteAccountTest extends TestCase
 
     public function test_잘못된_확인_문구로_계정을_삭제할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->deleteJson('/api/settings/account', [
             'confirmation' => '잘못된문구',
@@ -70,7 +69,7 @@ final class DeleteAccountTest extends TestCase
 
     public function test_확인_문구_없이_계정을_삭제할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->deleteJson('/api/settings/account', []);
 

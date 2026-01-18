@@ -8,7 +8,6 @@ use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class ImageUploadTest extends TestCase
@@ -27,7 +26,7 @@ final class ImageUploadTest extends TestCase
 
     public function test_인증된_사용자는_이미지를_업로드할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $file = UploadedFile::fake()->image('test-image.jpg', 800, 600);
 
@@ -63,7 +62,7 @@ final class ImageUploadTest extends TestCase
 
     public function test_이미지가_아닌_파일은_업로드할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $file = UploadedFile::fake()->create('document.pdf', 100, 'application/pdf');
 
@@ -77,7 +76,7 @@ final class ImageUploadTest extends TestCase
 
     public function test_5_m_b_이상의_이미지는_업로드할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // Create a 6MB image file
         $file = UploadedFile::fake()->image('large-image.jpg')->size(6 * 1024);
@@ -92,7 +91,7 @@ final class ImageUploadTest extends TestCase
 
     public function test_지원되는_이미지_형식만_업로드할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // Test supported formats
         $formats = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -110,7 +109,7 @@ final class ImageUploadTest extends TestCase
 
     public function test_이미지_파일명이_없으면_업로드할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson('/api/images/upload', []);
 

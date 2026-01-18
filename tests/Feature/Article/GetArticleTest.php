@@ -7,6 +7,7 @@ namespace Tests\Feature\Article;
 use App\Infrastructure\Persistence\Eloquent\ArticleModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -20,6 +21,17 @@ final class GetArticleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
 
         $this->user = UserModel::create([
             'uuid' => '550e8400-e29b-41d4-a716-446655440000',
@@ -148,7 +160,7 @@ final class GetArticleTest extends TestCase
             'published_at' => null,
         ]);
 
-        $token = $this->user->createToken('auth-token')->plainTextToken;
+        $token = $this->user->createToken('auth-token')->accessToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/articles/{$article->slug}");

@@ -8,7 +8,6 @@ use App\Infrastructure\Persistence\Eloquent\ArticleModel;
 use App\Infrastructure\Persistence\Eloquent\CommentModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class LikeCommentTest extends TestCase
@@ -35,7 +34,7 @@ final class LikeCommentTest extends TestCase
 
     public function test_인증된_사용자는_댓글에_좋아요를_누를_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson("/api/comments/{$this->comment->id}/like");
 
@@ -58,7 +57,7 @@ final class LikeCommentTest extends TestCase
 
     public function test_이미_좋아요한_댓글에_다시_좋아요를_누르면_취소된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // 먼저 좋아요
         $this->postJson("/api/comments/{$this->comment->id}/like");
@@ -78,7 +77,7 @@ final class LikeCommentTest extends TestCase
 
     public function test_존재하지_않는_댓글에_좋아요를_누를_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson('/api/comments/99999/like');
 
@@ -87,7 +86,7 @@ final class LikeCommentTest extends TestCase
 
     public function test_좋아요를_누르면_댓글의_like_count가_증가한다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $initialCount = $this->comment->like_count;
 
@@ -99,7 +98,7 @@ final class LikeCommentTest extends TestCase
 
     public function test_좋아요를_취소하면_댓글의_like_count가_감소한다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // 먼저 좋아요
         $this->postJson("/api/comments/{$this->comment->id}/like");
@@ -115,7 +114,7 @@ final class LikeCommentTest extends TestCase
 
     public function test_삭제된_댓글에는_좋아요를_누를_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $deletedComment = CommentModel::factory()->create([
             'article_id' => $this->article->id,

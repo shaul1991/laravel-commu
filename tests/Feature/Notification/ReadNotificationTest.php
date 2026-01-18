@@ -7,7 +7,6 @@ namespace Tests\Feature\Notification;
 use App\Infrastructure\Persistence\Eloquent\NotificationModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class ReadNotificationTest extends TestCase
@@ -25,7 +24,7 @@ final class ReadNotificationTest extends TestCase
 
     public function test_인증된_사용자는_알림을_읽음_처리할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $notification = NotificationModel::factory()->create([
             'user_id' => $this->user->id,
@@ -61,7 +60,7 @@ final class ReadNotificationTest extends TestCase
             'user_id' => $otherUser->id,
         ]);
 
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson("/api/notifications/{$notification->id}/read");
 
@@ -70,7 +69,7 @@ final class ReadNotificationTest extends TestCase
 
     public function test_존재하지_않는_알림을_읽음_처리할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson('/api/notifications/99999/read');
 
@@ -79,7 +78,7 @@ final class ReadNotificationTest extends TestCase
 
     public function test_모든_알림을_읽음_처리할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         NotificationModel::factory()->count(5)->create([
             'user_id' => $this->user->id,

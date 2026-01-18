@@ -6,6 +6,7 @@ namespace Tests\Feature\Auth;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Mockery;
@@ -14,6 +15,22 @@ use Tests\TestCase;
 final class OAuthTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
+    }
 
     public function test_소셜_로그인_리다이렉트를_수행한다(): void
     {

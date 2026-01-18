@@ -6,6 +6,7 @@ namespace Tests\Feature\Article;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -22,6 +23,17 @@ final class CreateArticleTest extends TestCase
     {
         parent::setUp();
 
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
+
         $this->user = UserModel::create([
             'uuid' => '550e8400-e29b-41d4-a716-446655440000',
             'name' => '홍길동',
@@ -30,7 +42,7 @@ final class CreateArticleTest extends TestCase
             'password' => Hash::make('Password123!'),
         ]);
 
-        $this->token = $this->user->createToken('auth-token')->plainTextToken;
+        $this->token = $this->user->createToken('auth-token')->accessToken;
     }
 
     #[Test]

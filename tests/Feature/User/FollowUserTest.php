@@ -6,7 +6,6 @@ namespace Tests\Feature\User;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class FollowUserTest extends TestCase
@@ -27,7 +26,7 @@ final class FollowUserTest extends TestCase
 
     public function test_인증된_사용자는_다른_사용자를_팔로우할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson("/api/users/{$this->targetUser->username}/follow");
 
@@ -50,7 +49,7 @@ final class FollowUserTest extends TestCase
 
     public function test_이미_팔로우한_사용자를_다시_팔로우하면_언팔로우된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // 먼저 팔로우
         $this->postJson("/api/users/{$this->targetUser->username}/follow");
@@ -70,7 +69,7 @@ final class FollowUserTest extends TestCase
 
     public function test_자기_자신을_팔로우할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson("/api/users/{$this->user->username}/follow");
 
@@ -80,7 +79,7 @@ final class FollowUserTest extends TestCase
 
     public function test_존재하지_않는_사용자를_팔로우할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->postJson('/api/users/nonexistent_user/follow');
 

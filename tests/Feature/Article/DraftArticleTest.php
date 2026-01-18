@@ -7,7 +7,6 @@ namespace Tests\Feature\Article;
 use App\Infrastructure\Persistence\Eloquent\ArticleModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class DraftArticleTest extends TestCase
@@ -25,7 +24,7 @@ final class DraftArticleTest extends TestCase
 
     public function test_사용자는_자신의_임시저장글_목록을_조회할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // Create drafts
         ArticleModel::factory()->count(3)->create([
@@ -66,7 +65,7 @@ final class DraftArticleTest extends TestCase
 
     public function test_다른_사용자의_임시저장글은_보이지_않는다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $otherUser = UserModel::factory()->create();
 
@@ -90,7 +89,7 @@ final class DraftArticleTest extends TestCase
 
     public function test_임시저장글_목록은_최신순으로_정렬된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $old = ArticleModel::factory()->create([
             'author_id' => $this->user->id,
@@ -115,7 +114,7 @@ final class DraftArticleTest extends TestCase
 
     public function test_임시저장글을_발행할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $draft = ArticleModel::factory()->create([
             'author_id' => $this->user->id,
@@ -136,7 +135,7 @@ final class DraftArticleTest extends TestCase
 
     public function test_다른_사용자의_임시저장글은_발행할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $otherUser = UserModel::factory()->create();
         $draft = ArticleModel::factory()->create([
@@ -151,7 +150,7 @@ final class DraftArticleTest extends TestCase
 
     public function test_이미_발행된_글은_다시_발행할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $published = ArticleModel::factory()->create([
             'author_id' => $this->user->id,

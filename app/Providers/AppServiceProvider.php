@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +21,27 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configurePassport();
         $this->configureSentryUserContext();
+    }
+
+    /**
+     * Configure Laravel Passport
+     */
+    private function configurePassport(): void
+    {
+        // Token expiration times from config
+        Passport::tokensExpireIn(now()->addMinutes((int) config('passport.tokens_expire_in', 15)));
+        Passport::refreshTokensExpireIn(now()->addMinutes((int) config('passport.refresh_tokens_expire_in', 10080)));
+        Passport::personalAccessTokensExpireIn(now()->addMinutes((int) config('passport.personal_access_tokens_expire_in', 10080)));
+
+        // Enable Personal Access Client ID and Secret from environment
+        if ($clientId = config('passport.personal_access_client.id')) {
+            Passport::personalAccessClientId($clientId);
+        }
+        if ($clientSecret = config('passport.personal_access_client.secret')) {
+            Passport::personalAccessClientSecret($clientSecret);
+        }
     }
 
     /**

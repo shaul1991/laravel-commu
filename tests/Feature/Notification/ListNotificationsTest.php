@@ -7,7 +7,6 @@ namespace Tests\Feature\Notification;
 use App\Infrastructure\Persistence\Eloquent\NotificationModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 final class ListNotificationsTest extends TestCase
@@ -25,7 +24,7 @@ final class ListNotificationsTest extends TestCase
 
     public function test_인증된_사용자는_알림_목록을_조회할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         NotificationModel::factory()->count(5)->create([
             'user_id' => $this->user->id,
@@ -59,7 +58,7 @@ final class ListNotificationsTest extends TestCase
 
     public function test_다른_사용자의_알림은_조회되지_않는다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $otherUser = UserModel::factory()->create();
         NotificationModel::factory()->count(3)->create([
@@ -77,7 +76,7 @@ final class ListNotificationsTest extends TestCase
 
     public function test_알림은_최신순으로_정렬된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $oldNotification = NotificationModel::factory()->create([
             'user_id' => $this->user->id,
@@ -98,7 +97,7 @@ final class ListNotificationsTest extends TestCase
 
     public function test_읽지_않은_알림만_필터링할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         NotificationModel::factory()->count(3)->create([
             'user_id' => $this->user->id,
@@ -117,7 +116,7 @@ final class ListNotificationsTest extends TestCase
 
     public function test_페이지네이션이_적용된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         NotificationModel::factory()->count(15)->create([
             'user_id' => $this->user->id,

@@ -95,8 +95,8 @@ final class OAuthController extends Controller
                 return $user;
             });
 
-            // Create token
-            $token = $user->createToken('oauth-token')->plainTextToken;
+            // Create token (Passport)
+            $token = $user->createToken('oauth-token')->accessToken;
 
             // Return HTML that stores token and redirects
             $userData = json_encode([

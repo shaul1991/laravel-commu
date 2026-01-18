@@ -6,6 +6,7 @@ namespace Tests\Feature\Auth;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -13,6 +14,22 @@ use Tests\TestCase;
 final class MeTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
+    }
 
     #[Test]
     public function authenticated_user_can_get_their_info(): void
@@ -26,9 +43,10 @@ final class MeTest extends TestCase
             'bio' => 'Backend Developer',
         ]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $tokenResult = $user->createToken('auth-token');
+        $accessToken = $tokenResult->accessToken;
 
-        $response = $this->withHeader('Authorization', "Bearer {$token}")
+        $response = $this->withHeader('Authorization', "Bearer {$accessToken}")
             ->getJson('/api/auth/me');
 
         $response->assertStatus(200)
