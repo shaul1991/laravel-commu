@@ -36,6 +36,12 @@ final class OAuthController extends Controller
         }
 
         if (! $request->has('code')) {
+            \Log::warning('OAuth callback missing code', [
+                'provider' => $provider,
+                'query' => $request->query(),
+                'url' => $request->fullUrl(),
+            ]);
+
             return redirect('/login?error=oauth_failed');
         }
 
@@ -127,6 +133,14 @@ HTML;
 
             return response($html)->header('Content-Type', 'text/html');
         } catch (\Exception $e) {
+            \Log::error('OAuth callback error', [
+                'provider' => $provider,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return redirect('/login?error=oauth_failed');
         }
     }
