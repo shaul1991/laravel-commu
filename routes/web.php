@@ -6,19 +6,11 @@ Route::get('/', function () {
     return view('pages.home');
 })->name('home');
 
-// Guest Only Routes (redirect to home if authenticated)
+// Guest Only Routes (redirect to home if authenticated) - OAuth Only
 Route::middleware('guest')->group(function () {
     Route::get('/login', function () {
         return view('pages.auth.login');
     })->name('login');
-
-    Route::get('/register', function () {
-        return view('pages.auth.register');
-    })->name('register');
-
-    Route::get('/forgot-password', function () {
-        return view('pages.auth.forgot-password');
-    })->name('password.request');
 });
 
 // Public Routes

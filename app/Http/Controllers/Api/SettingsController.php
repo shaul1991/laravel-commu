@@ -5,62 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\UpdateEmailRequest;
 use App\Http\Requests\Settings\UpdateNotificationSettingsRequest;
-use App\Http\Requests\Settings\UpdatePasswordRequest;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use App\Infrastructure\Persistence\Eloquent\UserSettingsModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
+/**
+ * SettingsController handles user settings.
+ * Email/password update methods have been removed (OAuth-only authentication).
+ */
 final class SettingsController extends Controller
 {
-    public function updateEmail(UpdateEmailRequest $request): JsonResponse
-    {
-        /** @var UserModel $user */
-        $user = $request->user();
-
-        if (! Hash::check($request->validated('password'), $user->password)) {
-            return response()->json([
-                'message' => '비밀번호가 일치하지 않습니다.',
-            ], 422);
-        }
-
-        $user->update([
-            'email' => $request->validated('email'),
-            'email_verified_at' => null, // Reset email verification
-        ]);
-
-        $user->refresh();
-
-        return response()->json([
-            'data' => [
-                'email' => $user->email,
-            ],
-        ]);
-    }
-
-    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
-    {
-        /** @var UserModel $user */
-        $user = $request->user();
-
-        if (! Hash::check($request->validated('current_password'), $user->password)) {
-            return response()->json([
-                'message' => '현재 비밀번호가 일치하지 않습니다.',
-            ], 422);
-        }
-
-        $user->update([
-            'password' => Hash::make($request->validated('password')),
-        ]);
-
-        return response()->json([
-            'message' => '비밀번호가 변경되었습니다.',
-        ]);
-    }
-
     public function getNotificationSettings(Request $request): JsonResponse
     {
         /** @var UserModel $user */
@@ -90,20 +46,21 @@ final class SettingsController extends Controller
         ]);
     }
 
+    /**
+     * Delete user account with confirmation phrase (OAuth-only authentication).
+     * Instead of password verification, user must type "삭제합니다" to confirm.
+     */
     public function deleteAccount(Request $request): JsonResponse
     {
         $request->validate([
-            'password' => ['required', 'string'],
+            'confirmation' => ['required', 'string', 'in:삭제합니다'],
+        ], [
+            'confirmation.required' => '확인 문구를 입력해주세요.',
+            'confirmation.in' => '확인 문구가 올바르지 않습니다. "삭제합니다"를 정확히 입력해주세요.',
         ]);
 
         /** @var UserModel $user */
         $user = $request->user();
-
-        if (! Hash::check($request->input('password'), $user->password)) {
-            return response()->json([
-                'message' => '비밀번호가 일치하지 않습니다.',
-            ], 422);
-        }
 
         // Revoke all tokens
         $user->tokens()->delete();

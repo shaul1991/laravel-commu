@@ -20,13 +20,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Auth Routes (Public)
+// Auth Routes (Public) - OAuth Only
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-
     // OAuth Routes
     Route::get('/oauth/{provider}/redirect', [OAuthController::class, 'redirect']);
     Route::get('/oauth/{provider}/callback', [OAuthController::class, 'callback']);
@@ -53,10 +48,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
-        Route::post('/email/send-verification', [AuthController::class, 'sendVerificationEmail']);
-        Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-            ->middleware('signed')
-            ->name('verification.verify');
 
         // Social Account Routes
         Route::get('/social-accounts', [SocialAccountController::class, 'index']);
@@ -87,8 +78,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Settings Routes (Protected)
     Route::prefix('settings')->group(function () {
-        Route::put('/account/email', [SettingsController::class, 'updateEmail']);
-        Route::put('/account/password', [SettingsController::class, 'updatePassword']);
         Route::delete('/account', [SettingsController::class, 'deleteAccount']);
         Route::get('/notifications', [SettingsController::class, 'getNotificationSettings']);
         Route::put('/notifications', [SettingsController::class, 'updateNotificationSettings']);

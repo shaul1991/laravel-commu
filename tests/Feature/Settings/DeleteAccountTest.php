@@ -6,10 +6,13 @@ namespace Tests\Feature\Settings;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
+/**
+ * Tests for account deletion (OAuth-only authentication).
+ * Note: Uses confirmation phrase instead of password verification.
+ */
 final class DeleteAccountTest extends TestCase
 {
     use RefreshDatabase;
@@ -20,9 +23,7 @@ final class DeleteAccountTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = UserModel::factory()->create([
-            'password' => Hash::make('password123'),
-        ]);
+        $this->user = UserModel::factory()->create();
     }
 
     public function test_인증된_사용자는_계정을_삭제할_수_있다(): void
@@ -30,7 +31,7 @@ final class DeleteAccountTest extends TestCase
         Sanctum::actingAs($this->user);
 
         $response = $this->deleteJson('/api/settings/account', [
-            'password' => 'password123',
+            'confirmation' => '삭제합니다',
         ]);
 
         $response->assertOk()
@@ -44,22 +45,22 @@ final class DeleteAccountTest extends TestCase
     public function test_인증되지_않은_사용자는_계정을_삭제할_수_없다(): void
     {
         $response = $this->deleteJson('/api/settings/account', [
-            'password' => 'password123',
+            'confirmation' => '삭제합니다',
         ]);
 
         $response->assertUnauthorized();
     }
 
-    public function test_잘못된_비밀번호로_계정을_삭제할_수_없다(): void
+    public function test_잘못된_확인_문구로_계정을_삭제할_수_없다(): void
     {
         Sanctum::actingAs($this->user);
 
         $response = $this->deleteJson('/api/settings/account', [
-            'password' => 'wrongPassword',
+            'confirmation' => '잘못된문구',
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonPath('message', '비밀번호가 일치하지 않습니다.');
+            ->assertJsonValidationErrors(['confirmation']);
 
         $this->assertDatabaseHas('users', [
             'id' => $this->user->id,
@@ -67,13 +68,13 @@ final class DeleteAccountTest extends TestCase
         ]);
     }
 
-    public function test_비밀번호_없이_계정을_삭제할_수_없다(): void
+    public function test_확인_문구_없이_계정을_삭제할_수_없다(): void
     {
         Sanctum::actingAs($this->user);
 
         $response = $this->deleteJson('/api/settings/account', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['password']);
+            ->assertJsonValidationErrors(['confirmation']);
     }
 }

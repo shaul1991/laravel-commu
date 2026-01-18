@@ -60,15 +60,6 @@
                                 알림
                             </button>
                         </li>
-                        <li>
-                            <button
-                                @click="tab = 'security'"
-                                :class="tab === 'security' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-600 hover:bg-neutral-50'"
-                                class="w-full text-left px-4 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                보안
-                            </button>
-                        </li>
                     </ul>
                 </nav>
 
@@ -138,44 +129,17 @@
                     <div x-show="tab === 'account'" x-cloak class="card p-6">
                         <h2 class="text-lg font-bold text-neutral-900 mb-6">계정 정보</h2>
 
-                        <form @submit.prevent="updateEmail()" class="space-y-6">
-                            {{-- Current Email Display --}}
-                            <div>
-                                <label class="block text-sm font-medium text-neutral-700 mb-1.5">현재 이메일</label>
-                                <p class="text-neutral-900" x-text="currentEmail"></p>
-                            </div>
-
-                            {{-- New Email --}}
-                            <div>
-                                <label for="email" class="block text-sm font-medium text-neutral-700 mb-1.5">새 이메일</label>
-                                <input type="email" id="email" x-model="account.email" class="input max-w-md" required>
-                                <template x-if="errors.email">
-                                    <p class="mt-1 text-sm text-red-600" x-text="errors.email[0]"></p>
-                                </template>
-                            </div>
-
-                            {{-- Password for verification --}}
-                            <div>
-                                <label for="email_password" class="block text-sm font-medium text-neutral-700 mb-1.5">비밀번호 확인</label>
-                                <input type="password" id="email_password" x-model="account.password" class="input max-w-md" placeholder="현재 비밀번호를 입력하세요" required>
-                                <p class="mt-1 text-xs text-neutral-500">이메일 변경을 위해 현재 비밀번호를 입력해주세요</p>
-                                <template x-if="errors.password">
-                                    <p class="mt-1 text-sm text-red-600" x-text="errors.password[0]"></p>
-                                </template>
-                            </div>
-
-                            <div class="pt-4">
-                                <button type="submit" class="btn-primary" :disabled="saving">
-                                    <span x-show="!saving">이메일 변경</span>
-                                    <span x-show="saving">변경 중...</span>
-                                </button>
-                            </div>
-                        </form>
+                        {{-- Current Email Display (Read-only) --}}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-neutral-700 mb-1.5">이메일</label>
+                            <p class="text-neutral-900" x-text="currentEmail"></p>
+                            <p class="mt-1 text-xs text-neutral-500">이메일은 소셜 로그인 계정에서 가져옵니다.</p>
+                        </div>
 
                         {{-- Social Account Linking Section --}}
-                        <div class="mt-8 pt-6 border-t border-neutral-200">
+                        <div class="pt-6 border-t border-neutral-200">
                             <h3 class="text-lg font-bold text-neutral-900 mb-2">소셜 계정 연동</h3>
-                            <p class="text-sm text-neutral-600 mb-4">다른 서비스 계정을 연동하여 간편하게 로그인하세요</p>
+                            <p class="text-sm text-neutral-600 mb-4">소셜 계정을 연동하여 간편하게 로그인하세요</p>
 
                             <div class="space-y-3">
                                 {{-- GitHub --}}
@@ -195,66 +159,18 @@
                                         <button @click="linkSocialAccount('github')" class="btn-outline text-sm" :disabled="socialLoading">연동하기</button>
                                     </template>
                                     <template x-if="socialAccounts.github">
-                                        <button @click="showUnlinkModal = true; unlinkProvider = 'github'" class="text-sm text-red-600 hover:text-red-700 font-medium" :disabled="!canUnlink('github')">연동 해제</button>
-                                    </template>
-                                </div>
-
-                                {{-- Google --}}
-                                <div class="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 flex items-center justify-center rounded-full" :class="socialAccounts.google ? 'bg-white border border-neutral-200' : 'bg-neutral-100'">
-                                            <svg class="w-5 h-5" viewBox="0 0 24 24">
-                                                <template x-if="socialAccounts.google">
-                                                    <g>
-                                                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                                    </g>
-                                                </template>
-                                                <template x-if="!socialAccounts.google">
-                                                    <path fill="currentColor" class="text-neutral-400" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                                </template>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <span class="font-medium text-neutral-900">Google</span>
-                                            <p class="text-sm" :class="socialAccounts.google ? 'text-neutral-600' : 'text-neutral-500'" x-text="socialAccounts.google ? (socialAccounts.google.provider_email || socialAccounts.google.nickname) : '연동되지 않음'"></p>
-                                        </div>
-                                    </div>
-                                    <template x-if="!socialAccounts.google">
-                                        <button @click="linkSocialAccount('google')" class="btn-outline text-sm" :disabled="socialLoading">연동하기</button>
-                                    </template>
-                                    <template x-if="socialAccounts.google">
-                                        <button @click="showUnlinkModal = true; unlinkProvider = 'google'" class="text-sm text-red-600 hover:text-red-700 font-medium" :disabled="!canUnlink('google')">연동 해제</button>
+                                        <span class="text-sm text-green-600 font-medium">연동됨</span>
                                     </template>
                                 </div>
                             </div>
 
-                            {{-- 마지막 인증 수단 경고 --}}
-                            <template x-if="!canUnlinkAny()">
-                                <p class="mt-3 text-sm text-amber-600">
-                                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                    </svg>
-                                    비밀번호를 설정하거나 다른 소셜 계정을 연동한 후 해제할 수 있습니다.
-                                </p>
-                            </template>
-                        </div>
-
-                        {{-- Unlink Confirm Modal --}}
-                        <div x-show="showUnlinkModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" x-cloak>
-                            <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl" @click.away="showUnlinkModal = false">
-                                <h3 class="text-lg font-bold text-neutral-900 mb-4" x-text="unlinkProvider === 'github' ? 'GitHub 연동을 해제하시겠습니까?' : 'Google 연동을 해제하시겠습니까?'"></h3>
-                                <p class="text-neutral-600 mb-6">연동을 해제하면 해당 계정으로 로그인할 수 없습니다. 나중에 다시 연동할 수 있습니다.</p>
-                                <div class="flex gap-3 justify-end">
-                                    <button type="button" @click="showUnlinkModal = false; unlinkProvider = null" class="btn-outline">취소</button>
-                                    <button type="button" @click="unlinkSocialAccount()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium" :disabled="socialLoading">
-                                        <span x-show="!socialLoading">연동 해제</span>
-                                        <span x-show="socialLoading">처리 중...</span>
-                                    </button>
-                                </div>
-                            </div>
+                            {{-- 마지막 인증 수단 안내 --}}
+                            <p class="mt-3 text-sm text-neutral-600">
+                                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                소셜 계정으로만 로그인할 수 있습니다.
+                            </p>
                         </div>
 
                         {{-- Danger Zone --}}
@@ -283,16 +199,16 @@
                                 <h3 class="text-lg font-bold text-red-600 mb-4">계정을 삭제하시겠습니까?</h3>
                                 <p class="text-neutral-600 mb-6">이 작업은 되돌릴 수 없습니다. 모든 데이터(글, 댓글, 좋아요 등)가 영구적으로 삭제됩니다.</p>
                                 <div class="mb-4">
-                                    <label class="block text-sm font-medium text-neutral-700 mb-1.5">확인을 위해 비밀번호를 입력하세요</label>
-                                    <input type="password" x-model="deletePassword" class="input" placeholder="비밀번호">
+                                    <label class="block text-sm font-medium text-neutral-700 mb-1.5">확인을 위해 <span class="text-red-600 font-bold">"삭제합니다"</span>를 입력하세요</label>
+                                    <input type="text" x-model="deleteConfirmation" class="input" placeholder="삭제합니다">
                                 </div>
                                 <div class="flex gap-3 justify-end">
-                                    <button type="button" @click="showDeleteConfirm = false; deletePassword = ''" class="btn-outline">취소</button>
+                                    <button type="button" @click="showDeleteConfirm = false; deleteConfirmation = ''" class="btn-outline">취소</button>
                                     <button
                                         type="button"
                                         @click="deleteAccount()"
                                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                                        :disabled="!deletePassword || deleting"
+                                        :disabled="deleteConfirmation !== '삭제합니다' || deleting"
                                     >
                                         <span x-show="!deleting">계정 삭제</span>
                                         <span x-show="deleting">삭제 중...</span>
@@ -362,65 +278,6 @@
                             </div>
                         </form>
                     </div>
-
-                    {{-- Security Tab --}}
-                    <div x-show="tab === 'security'" x-cloak class="card p-6">
-                        <h2 class="text-lg font-bold text-neutral-900 mb-6">보안 설정</h2>
-
-                        <form @submit.prevent="updatePassword()" class="space-y-6">
-                            {{-- Change Password --}}
-                            <div>
-                                <h3 class="font-medium text-neutral-900 mb-4">비밀번호 변경</h3>
-                                <div class="space-y-4 max-w-md">
-                                    <div>
-                                        <label for="current_password" class="block text-sm font-medium text-neutral-700 mb-1.5">현재 비밀번호</label>
-                                        <input type="password" id="current_password" x-model="password.current" class="input" required>
-                                        <template x-if="errors.current_password">
-                                            <p class="mt-1 text-sm text-red-600" x-text="errors.current_password[0]"></p>
-                                        </template>
-                                    </div>
-                                    <div>
-                                        <label for="new_password" class="block text-sm font-medium text-neutral-700 mb-1.5">새 비밀번호</label>
-                                        <input type="password" id="new_password" x-model="password.new" class="input" required>
-                                        <p class="mt-1 text-xs text-neutral-500">8자 이상, 영문/숫자/특수문자 포함</p>
-                                        <template x-if="errors.password">
-                                            <p class="mt-1 text-sm text-red-600" x-text="errors.password[0]"></p>
-                                        </template>
-                                    </div>
-                                    <div>
-                                        <label for="confirm_password" class="block text-sm font-medium text-neutral-700 mb-1.5">새 비밀번호 확인</label>
-                                        <input type="password" id="confirm_password" x-model="password.confirm" class="input" required>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="pt-4">
-                                <button type="submit" class="btn-primary" :disabled="saving">
-                                    <span x-show="!saving">비밀번호 변경</span>
-                                    <span x-show="saving">변경 중...</span>
-                                </button>
-                            </div>
-                        </form>
-
-                        {{-- Sessions --}}
-                        <div class="mt-8 pt-6 border-t border-neutral-200">
-                            <h3 class="font-medium text-neutral-900 mb-4">활성 세션</h3>
-                            <div class="space-y-3">
-                                <div class="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
-                                    <div class="flex items-center gap-3">
-                                        <svg class="h-6 w-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                        <div>
-                                            <span class="font-medium text-neutral-900">현재 세션</span>
-                                            <p class="text-sm text-neutral-500">현재 브라우저</p>
-                                        </div>
-                                    </div>
-                                    <span class="text-sm text-green-600 font-medium">현재</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -445,10 +302,6 @@
             },
 
             currentEmail: '',
-            account: {
-                email: '',
-                password: ''
-            },
 
             notifications: {
                 email_on_comment: true,
@@ -458,22 +311,13 @@
                 push_enabled: false
             },
 
-            password: {
-                current: '',
-                new: '',
-                confirm: ''
-            },
-
             showDeleteConfirm: false,
-            deletePassword: '',
+            deleteConfirmation: '',
             deleting: false,
 
             // Social Account Linking
-            socialAccounts: { github: null, google: null },
+            socialAccounts: { github: null },
             socialLoading: false,
-            showUnlinkModal: false,
-            unlinkProvider: null,
-            hasPassword: true,
 
             async init() {
                 this.isAuthenticated = window.auth?.isAuthenticated() ?? false;
@@ -500,7 +344,6 @@
                         this.profile.bio = currentUser.bio || '';
                         this.profile.avatar = currentUser.avatar || currentUser.avatar_url || null;
                         this.currentEmail = currentUser.email || '';
-                        this.account.email = currentUser.email || '';
                     }
 
                     // Fetch notification settings
@@ -571,53 +414,6 @@
                 }
             },
 
-            async updateEmail() {
-                this.saving = true;
-                this.clearMessages();
-                this.errors = {};
-
-                try {
-                    const response = await fetch('/api/settings/account/email', {
-                        method: 'PUT',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        },
-                        body: JSON.stringify({
-                            email: this.account.email,
-                            password: this.account.password
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        this.currentEmail = this.account.email;
-                        this.account.password = '';
-                        // Update local auth user data
-                        if (window.auth && data.data) {
-                            const currentUser = window.auth.getUser();
-                            if (currentUser) {
-                                currentUser.email = data.data.email;
-                                localStorage.setItem('user', JSON.stringify(currentUser));
-                            }
-                        }
-                        this.showSuccess('이메일이 변경되었습니다.');
-                    } else if (response.status === 422) {
-                        this.errors = data.errors || {};
-                        this.showError(data.message || '입력값을 확인해주세요.');
-                    } else {
-                        this.showError(data.message || '이메일 변경에 실패했습니다.');
-                    }
-                } catch (error) {
-                    console.error('Failed to update email:', error);
-                    this.showError('이메일 변경에 실패했습니다.');
-                } finally {
-                    this.saving = false;
-                }
-            },
-
             async updateNotifications() {
                 this.saving = true;
                 this.clearMessages();
@@ -648,52 +444,8 @@
                 }
             },
 
-            async updatePassword() {
-                if (this.password.new !== this.password.confirm) {
-                    this.showError('새 비밀번호가 일치하지 않습니다.');
-                    return;
-                }
-
-                this.saving = true;
-                this.clearMessages();
-                this.errors = {};
-
-                try {
-                    const response = await fetch('/api/settings/account/password', {
-                        method: 'PUT',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        },
-                        body: JSON.stringify({
-                            current_password: this.password.current,
-                            password: this.password.new,
-                            password_confirmation: this.password.confirm
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        this.showSuccess('비밀번호가 변경되었습니다.');
-                        this.password = { current: '', new: '', confirm: '' };
-                    } else if (response.status === 422) {
-                        this.errors = data.errors || {};
-                        this.showError(data.message || '입력값을 확인해주세요.');
-                    } else {
-                        this.showError(data.message || '비밀번호 변경에 실패했습니다.');
-                    }
-                } catch (error) {
-                    console.error('Failed to update password:', error);
-                    this.showError('비밀번호 변경에 실패했습니다.');
-                } finally {
-                    this.saving = false;
-                }
-            },
-
             async deleteAccount() {
-                if (!this.deletePassword) return;
+                if (this.deleteConfirmation !== '삭제합니다') return;
 
                 this.deleting = true;
                 this.clearMessages();
@@ -707,7 +459,7 @@
                             ...window.auth.getAuthHeaders()
                         },
                         body: JSON.stringify({
-                            password: this.deletePassword
+                            confirmation: this.deleteConfirmation
                         })
                     });
 
@@ -721,7 +473,7 @@
                         const data = await response.json();
                         this.showError(data.message || '계정 삭제에 실패했습니다.');
                         this.showDeleteConfirm = false;
-                        this.deletePassword = '';
+                        this.deleteConfirmation = '';
                     }
                 } catch (error) {
                     console.error('Failed to delete account:', error);
@@ -757,8 +509,7 @@
                     });
                     if (response.ok) {
                         const data = await response.json();
-                        this.socialAccounts = data.data || { github: null, google: null };
-                        this.hasPassword = data.has_password ?? true;
+                        this.socialAccounts = data.data || { github: null };
                     }
                 } catch (error) {
                     console.error('Failed to fetch social accounts:', error);
@@ -766,46 +517,7 @@
             },
 
             linkSocialAccount(provider) {
-                // OAuth 리다이렉트 엔드포인트는 HTTP 302 리다이렉트를 반환하므로
-                // fetch API 대신 직접 해당 URL로 이동
                 window.location.href = `/api/auth/oauth/${provider}/redirect`;
-            },
-
-            async unlinkSocialAccount() {
-                if (!this.unlinkProvider) return;
-                this.socialLoading = true;
-                try {
-                    const response = await fetch(`/api/auth/social-accounts/${this.unlinkProvider}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Accept': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        }
-                    });
-                    if (response.ok) {
-                        this.socialAccounts[this.unlinkProvider] = null;
-                        this.showSuccess(`${this.unlinkProvider === 'github' ? 'GitHub' : 'Google'} 연동이 해제되었습니다.`);
-                    } else {
-                        const data = await response.json();
-                        this.showError(data.message || '연동 해제에 실패했습니다.');
-                    }
-                } catch (error) {
-                    this.showError('연동 해제에 실패했습니다.');
-                } finally {
-                    this.socialLoading = false;
-                    this.showUnlinkModal = false;
-                    this.unlinkProvider = null;
-                }
-            },
-
-            canUnlink(provider) {
-                const linkedCount = (this.socialAccounts.github ? 1 : 0) + (this.socialAccounts.google ? 1 : 0);
-                return this.hasPassword || linkedCount > 1;
-            },
-
-            canUnlinkAny() {
-                const linkedCount = (this.socialAccounts.github ? 1 : 0) + (this.socialAccounts.google ? 1 : 0);
-                return this.hasPassword || linkedCount > 1;
             }
         };
     }

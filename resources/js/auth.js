@@ -1,5 +1,5 @@
 /**
- * Authentication Helper Module
+ * Authentication Helper Module (OAuth-only)
  * Manages auth tokens and user state
  */
 
@@ -7,23 +7,6 @@ const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_KEY = 'auth_user';
 
 export const auth = {
-    /**
-     * Ensure CSRF token is set by calling Sanctum's csrf-cookie endpoint
-     */
-    async ensureCsrfToken() {
-        await fetch('/sanctum/csrf-cookie', {
-            credentials: 'same-origin',
-        });
-    },
-
-    /**
-     * Get CSRF token from cookie
-     */
-    getCsrfToken() {
-        const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
-        return match ? decodeURIComponent(match[1]) : null;
-    },
-
     /**
      * Get stored auth token
      */
@@ -66,78 +49,6 @@ export const auth = {
     clear() {
         localStorage.removeItem(AUTH_TOKEN_KEY);
         localStorage.removeItem(AUTH_USER_KEY);
-    },
-
-    /**
-     * Login user
-     */
-    async login(email, password, remember = false) {
-        // Ensure CSRF token is set for Sanctum SPA authentication
-        await this.ensureCsrfToken();
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        };
-
-        const csrfToken = this.getCsrfToken();
-        if (csrfToken) {
-            headers['X-XSRF-TOKEN'] = csrfToken;
-        }
-
-        const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers,
-            credentials: 'same-origin',
-            body: JSON.stringify({ email, password, remember }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw { status: response.status, ...data };
-        }
-
-        this.setToken(data.data.token);
-        this.setUser(data.data.user);
-
-        return data;
-    },
-
-    /**
-     * Register user
-     */
-    async register(userData) {
-        // Ensure CSRF token is set for Sanctum SPA authentication
-        await this.ensureCsrfToken();
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        };
-
-        const csrfToken = this.getCsrfToken();
-        if (csrfToken) {
-            headers['X-XSRF-TOKEN'] = csrfToken;
-        }
-
-        const response = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers,
-            credentials: 'same-origin',
-            body: JSON.stringify(userData),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw { status: response.status, ...data };
-        }
-
-        this.setToken(data.data.token);
-        this.setUser(data.data.user);
-
-        return data;
     },
 
     /**
@@ -224,7 +135,7 @@ export const auth = {
 
         // Store current URL for redirect after login
         const currentPath = window.location.pathname;
-        if (currentPath !== '/login' && currentPath !== '/register') {
+        if (currentPath !== '/login') {
             sessionStorage.setItem('redirect_after_login', currentPath);
         }
 
@@ -267,7 +178,7 @@ export const auth = {
 window.auth = auth;
 
 // Guest-only page redirect: redirect authenticated users to home
-const guestOnlyPaths = ['/login', '/register', '/forgot-password'];
+const guestOnlyPaths = ['/login'];
 if (auth.isAuthenticated() && guestOnlyPaths.includes(window.location.pathname)) {
     window.location.href = '/';
 }

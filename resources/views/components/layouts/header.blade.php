@@ -96,8 +96,7 @@
                 {{-- Guest Buttons --}}
                 <template x-if="!isAuthenticated">
                     <div class="flex items-center gap-4">
-                        <a href="{{ route('login') }}" class="btn-ghost text-sm">로그인</a>
-                        <a href="{{ route('register') }}" class="btn-primary text-sm">회원가입</a>
+                        <a href="{{ route('login') }}" class="btn-primary text-sm">로그인</a>
                     </div>
                 </template>
             </div>
@@ -157,8 +156,7 @@
                 {{-- Guest Mobile Menu --}}
                 <template x-if="!isAuthenticated">
                     <div class="flex flex-col gap-2">
-                        <a href="{{ route('login') }}" class="btn-outline w-full justify-center text-sm">로그인</a>
-                        <a href="{{ route('register') }}" class="btn-primary w-full justify-center text-sm">회원가입</a>
+                        <a href="{{ route('login') }}" class="btn-primary w-full justify-center text-sm">로그인</a>
                     </div>
                 </template>
             </div>
