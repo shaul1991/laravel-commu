@@ -233,14 +233,9 @@ pipeline {
                             docker compose -f docker/docker-compose.dev.yml up -d dev
                     """
 
-                    // OAuth 키 권한 수정 (www-data가 읽을 수 있도록, 600/660 권한 필수)
-                    sh """
-                        sleep 5
-                        docker exec ${PROJECT_NAME} sh -c 'if [ -f /var/www/html/storage/oauth-private.key ]; then chown www-data:www-data /var/www/html/storage/oauth-private.key /var/www/html/storage/oauth-public.key && chmod 600 /var/www/html/storage/oauth-private.key && chmod 660 /var/www/html/storage/oauth-public.key; fi' || true
-                    """
-
                     // Storage 권한 설정 및 Laravel 초기화
                     sh """
+                        sleep 5
                         docker exec ${PROJECT_NAME} chown -R www-data:www-data /var/www/html/storage
                         docker exec ${PROJECT_NAME} chmod -R 775 /var/www/html/storage
                         docker exec ${PROJECT_NAME} php artisan storage:link || true
@@ -248,6 +243,11 @@ pipeline {
                         docker exec ${PROJECT_NAME} php artisan route:cache || true
                         docker exec ${PROJECT_NAME} php artisan view:cache || true
                         docker exec ${PROJECT_NAME} php artisan migrate --force || true
+                    """
+
+                    // OAuth 키 권한 수정 (chmod -R 775 이후에 실행해야 함, Passport 보안 요구사항: 600/660)
+                    sh """
+                        docker exec ${PROJECT_NAME} sh -c 'if [ -f /var/www/html/storage/oauth-private.key ]; then chmod 600 /var/www/html/storage/oauth-private.key && chmod 660 /var/www/html/storage/oauth-public.key; fi' || true
                     """
                 }
             }
