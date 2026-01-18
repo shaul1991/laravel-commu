@@ -10,19 +10,31 @@ RUN apk add --no-cache \
     git \
     unzip \
     libpq-dev \
-    supervisor
+    supervisor \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libzip-dev \
+    libwebp-dev
 
 # ==========================================
 # PHP 확장 설치
 # - pdo, pdo_pgsql: PostgreSQL 연결
 # - pcntl: Queue Worker 프로세스 제어
 # - opcache: PHP 성능 최적화
+# - gd: 이미지 처리 (테스트용 이미지 생성)
+# - zip: ZIP 파일 처리 (Laravel Dusk 등)
 # ==========================================
+# GD 확장 구성 (JPEG, PNG, Freetype, WebP 지원)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp
+
 RUN docker-php-ext-install -j$(nproc) \
     pdo \
     pdo_pgsql \
     pcntl \
-    opcache
+    opcache \
+    gd \
+    zip
 
 # ==========================================
 # PECL 확장 설치
