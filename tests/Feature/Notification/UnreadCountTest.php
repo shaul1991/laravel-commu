@@ -7,7 +7,7 @@ namespace Tests\Feature\Notification;
 use App\Infrastructure\Persistence\Eloquent\NotificationModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
+
 use Tests\TestCase;
 
 final class UnreadCountTest extends TestCase
@@ -25,7 +25,7 @@ final class UnreadCountTest extends TestCase
 
     public function test_인증된_사용자는_읽지_않은_알림_수를_조회할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         NotificationModel::factory()->count(3)->create([
             'user_id' => $this->user->id,
@@ -51,7 +51,7 @@ final class UnreadCountTest extends TestCase
 
     public function test_알림이_없으면_0을_반환한다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->getJson('/api/notifications/unread-count');
 

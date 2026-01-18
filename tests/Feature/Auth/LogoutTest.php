@@ -6,6 +6,7 @@ namespace Tests\Feature\Auth;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -13,6 +14,22 @@ use Tests\TestCase;
 final class LogoutTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
+    }
 
     #[Test]
     public function authenticated_user_can_logout(): void
@@ -25,9 +42,10 @@ final class LogoutTest extends TestCase
             'password' => Hash::make('Password123!'),
         ]);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $tokenResult = $user->createToken('auth-token');
+        $accessToken = $tokenResult->accessToken;
 
-        $response = $this->withHeader('Authorization', "Bearer {$token}")
+        $response = $this->withHeader('Authorization', "Bearer {$accessToken}")
             ->postJson('/api/auth/logout');
 
         $response->assertStatus(200)
@@ -35,8 +53,11 @@ final class LogoutTest extends TestCase
                 'message' => 'Logout successful',
             ]);
 
-        // Token should be invalidated
-        $this->assertDatabaseCount('personal_access_tokens', 0);
+        // Token should be revoked (not deleted, but revoked in Passport)
+        $this->assertDatabaseHas('oauth_access_tokens', [
+            'id' => $tokenResult->token->id,
+            'revoked' => true,
+        ]);
     }
 
     #[Test]

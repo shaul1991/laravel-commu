@@ -6,7 +6,7 @@ namespace Tests\Feature\Settings;
 
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
+
 use Tests\TestCase;
 
 final class NotificationSettingsTest extends TestCase
@@ -24,7 +24,7 @@ final class NotificationSettingsTest extends TestCase
 
     public function test_인증된_사용자는_알림_설정을_조회할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->getJson('/api/settings/notifications');
 
@@ -49,7 +49,7 @@ final class NotificationSettingsTest extends TestCase
 
     public function test_인증된_사용자는_알림_설정을_수정할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->putJson('/api/settings/notifications', [
             'email_on_comment' => false,
@@ -76,7 +76,7 @@ final class NotificationSettingsTest extends TestCase
 
     public function test_부분_업데이트가_가능하다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->putJson('/api/settings/notifications', [
             'email_on_comment' => false,

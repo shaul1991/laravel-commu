@@ -7,6 +7,7 @@ namespace Tests\Feature\Auth;
 use App\Infrastructure\Persistence\Eloquent\SocialAccountModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -17,6 +18,22 @@ use Tests\TestCase;
 final class SocialAccountTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Passport 키 생성
+        if (! file_exists(storage_path('oauth-private.key'))) {
+            Artisan::call('passport:keys', ['--force' => true]);
+        }
+
+        // Personal Access Client 생성
+        Artisan::call('passport:client', [
+            '--personal' => true,
+            '--name' => 'Test Personal Access Client',
+        ]);
+    }
 
     // ========================================
     // ECS-147: SocialAccountModel Tests
@@ -277,7 +294,7 @@ final class SocialAccountTest extends TestCase
             'avatar_url' => 'https://github.com/avatar.jpg',
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->getJson('/api/auth/social-accounts');
 
         $response->assertStatus(200)
@@ -303,7 +320,7 @@ final class SocialAccountTest extends TestCase
             'provider_id' => 'github_123',
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->deleteJson('/api/auth/social-accounts/github');
 
         $response->assertStatus(200)
@@ -330,7 +347,7 @@ final class SocialAccountTest extends TestCase
             'provider_id' => 'github_123',
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->deleteJson('/api/auth/social-accounts/github');
 
         $response->assertStatus(422)
@@ -357,7 +374,7 @@ final class SocialAccountTest extends TestCase
             'provider_id' => 'github_123',
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->deleteJson('/api/auth/social-accounts/github');
 
         $response->assertStatus(200);
@@ -385,7 +402,7 @@ final class SocialAccountTest extends TestCase
             'provider_id' => 'google_456',
         ]);
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->deleteJson('/api/auth/social-accounts/github');
 
         $response->assertStatus(200);
@@ -405,7 +422,7 @@ final class SocialAccountTest extends TestCase
     {
         $user = $this->createUser();
 
-        $response = $this->actingAs($user)
+        $response = $this->actingAs($user, 'api')
             ->deleteJson('/api/auth/social-accounts/github');
 
         $response->assertStatus(404)

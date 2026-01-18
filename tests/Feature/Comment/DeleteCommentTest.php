@@ -8,7 +8,7 @@ use App\Infrastructure\Persistence\Eloquent\ArticleModel;
 use App\Infrastructure\Persistence\Eloquent\CommentModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\Sanctum;
+
 use Tests\TestCase;
 
 final class DeleteCommentTest extends TestCase
@@ -35,7 +35,7 @@ final class DeleteCommentTest extends TestCase
 
     public function test_작성자는_댓글을_삭제할_수_있다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->deleteJson("/api/comments/{$this->comment->id}");
 
@@ -57,7 +57,7 @@ final class DeleteCommentTest extends TestCase
     public function test_작성자가_아닌_사용자는_댓글을_삭제할_수_없다(): void
     {
         $otherUser = UserModel::factory()->create();
-        Sanctum::actingAs($otherUser);
+        $this->actingAs($otherUser, 'api');
 
         $response = $this->deleteJson("/api/comments/{$this->comment->id}");
 
@@ -66,7 +66,7 @@ final class DeleteCommentTest extends TestCase
 
     public function test_존재하지_않는_댓글은_삭제할_수_없다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->deleteJson('/api/comments/99999');
 
@@ -75,7 +75,7 @@ final class DeleteCommentTest extends TestCase
 
     public function test_대댓글이_있는_댓글을_삭제하면_삭제된_댓글로_표시된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // 대댓글 생성
         CommentModel::factory()->create([
@@ -97,7 +97,7 @@ final class DeleteCommentTest extends TestCase
 
     public function test_대댓글이_없는_댓글을_삭제하면_완전히_삭제된다(): void
     {
-        Sanctum::actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $response = $this->deleteJson("/api/comments/{$this->comment->id}");
 

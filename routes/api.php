@@ -25,6 +25,9 @@ Route::prefix('auth')->group(function () {
     // OAuth Routes
     Route::get('/oauth/{provider}/redirect', [OAuthController::class, 'redirect']);
     Route::get('/oauth/{provider}/callback', [OAuthController::class, 'callback']);
+
+    // Token Refresh (uses HTTP-only cookie, no auth required)
+    Route::post('/refresh', [AuthController::class, 'refresh']);
 });
 
 // Article Routes (Public - with optional auth support via controller)
@@ -43,11 +46,17 @@ Route::get('/search/users', [SearchController::class, 'users']);
 Route::get('/users/{username}', [UserController::class, 'show']);
 Route::get('/users/{username}/articles', [UserController::class, 'articles']);
 
-// Auth Routes (Protected)
-Route::middleware('auth:sanctum')->group(function () {
+// Auth Routes (Protected) - Passport API Guard
+Route::middleware('auth:api')->group(function () {
     Route::prefix('auth')->group(function () {
+        Route::post('/token', [AuthController::class, 'token']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+
+        // Session Management
+        Route::get('/sessions', [AuthController::class, 'sessions']);
+        Route::delete('/sessions/{id}', [AuthController::class, 'revokeSession']);
+        Route::post('/sessions/revoke-all', [AuthController::class, 'revokeAllSessions']);
 
         // Social Account Routes
         Route::get('/social-accounts', [SocialAccountController::class, 'index']);

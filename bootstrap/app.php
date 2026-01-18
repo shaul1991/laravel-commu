@@ -5,7 +5,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 use Sentry\Laravel\Integration;
 use Sentry\State\Scope;
 
@@ -17,17 +16,21 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // SPA 인증을 위한 Sanctum 상태 유지 미들웨어 추가
-        // 이 미들웨어는 동일 도메인에서 오는 요청에 대해 세션 기반 인증을 활성화합니다
-        $middleware->api(prepend: [
-            EnsureFrontendRequestsAreStateful::class,
-        ]);
+        // Passport는 토큰 기반 API 인증을 사용하므로
+        // 별도의 상태 유지 미들웨어가 필요하지 않습니다
+        // CreateFreshApiToken은 웹 라우트에서 쿠키 기반 API 토큰 발급에 사용됩니다
 
         // API 인증 라우트는 CSRF 검증에서 제외 (토큰 기반 인증 사용)
         $middleware->validateCsrfTokens(except: [
             'api/auth/login',
             'api/auth/register',
             'api/auth/logout',
+            'api/auth/refresh',
+        ]);
+
+        // refresh_token 쿠키는 암호화 제외 (JWT 자체가 서명됨)
+        $middleware->encryptCookies(except: [
+            'refresh_token',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
