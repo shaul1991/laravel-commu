@@ -8,10 +8,14 @@ set -e
 # 설정
 PROJECT_NAME="laravel-commu"
 DEPLOY_PATH="/var/www/laravel-commu"
+STORAGE_PATH="/var/www/laravel-commu-storage"
 BLUE_PORT="10000"
 GREEN_PORT="10001"
 HEALTH_CHECK_TIMEOUT=60
 HEALTH_CHECK_INTERVAL=2
+# php:8.4-fpm-alpine의 www-data UID/GID
+WWW_DATA_UID=82
+WWW_DATA_GID=82
 
 # 색상 정의
 RED='\033[0;31m'
@@ -40,6 +44,38 @@ get_current_env() {
     else
         echo "none"
     fi
+}
+
+# Storage 디렉토리 권한 설정
+setup_storage_permissions() {
+    log_info "Setting up storage directory permissions..."
+
+    # storage 디렉토리 생성 (없는 경우)
+    if [ ! -d "${STORAGE_PATH}" ]; then
+        log_info "Creating storage directory: ${STORAGE_PATH}"
+        mkdir -p "${STORAGE_PATH}"
+    fi
+
+    # storage 하위 디렉토리 생성
+    local storage_dirs=(
+        "app/public"
+        "framework/cache"
+        "framework/sessions"
+        "framework/views"
+        "logs"
+    )
+
+    for dir in "${storage_dirs[@]}"; do
+        if [ ! -d "${STORAGE_PATH}/${dir}" ]; then
+            mkdir -p "${STORAGE_PATH}/${dir}"
+        fi
+    done
+
+    # 권한 설정 (www-data가 쓸 수 있도록)
+    chown -R ${WWW_DATA_UID}:${WWW_DATA_GID} "${STORAGE_PATH}"
+    chmod -R 775 "${STORAGE_PATH}"
+
+    log_info "Storage permissions configured successfully"
 }
 
 # 헬스체크
@@ -108,6 +144,9 @@ deploy() {
         -t "${PROJECT_NAME}:${image_tag}" \
         -t "${PROJECT_NAME}:latest" \
         .
+
+    # Storage 디렉토리 권한 설정
+    setup_storage_permissions
 
     # 기존 대상 컨테이너 중지
     log_info "Stopping old ${target_env} container..."
