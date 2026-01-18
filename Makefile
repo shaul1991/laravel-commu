@@ -2,7 +2,7 @@
 # Laravel Docker 개발 환경
 # ==========================================
 
-.PHONY: help dev up down build restart logs sh composer artisan test pint migrate fresh vite vite-build xdebug xdebug-off xdebug-debug xdebug-develop xdebug-coverage xdebug-profile
+.PHONY: help dev up down build restart logs sh composer artisan test pint migrate fresh vite vite-build xdebug xdebug-off xdebug-debug xdebug-develop xdebug-coverage xdebug-profile passport-init
 
 # 기본 명령어
 help:
@@ -22,12 +22,13 @@ help:
 	@echo "    make sh          - WAS 컨테이너 접속"
 	@echo ""
 	@echo "  Laravel:"
-	@echo "    make composer    - Composer 명령 (예: make composer cmd='install')"
-	@echo "    make artisan     - Artisan 명령 (예: make artisan cmd='migrate')"
-	@echo "    make migrate     - 마이그레이션 실행"
-	@echo "    make fresh       - DB 초기화 + 시딩"
-	@echo "    make test        - 테스트 실행"
-	@echo "    make pint        - 코드 스타일 정리"
+	@echo "    make composer      - Composer 명령 (예: make composer cmd='install')"
+	@echo "    make artisan       - Artisan 명령 (예: make artisan cmd='migrate')"
+	@echo "    make migrate       - 마이그레이션 실행"
+	@echo "    make fresh         - DB 초기화 + 시딩"
+	@echo "    make test          - 테스트 실행"
+	@echo "    make pint          - 코드 스타일 정리"
+	@echo "    make passport-init - Passport OAuth 키 및 클라이언트 초기화"
 	@echo ""
 	@echo "  Xdebug:"
 	@echo "    make xdebug-off      - 비활성화"
@@ -96,6 +97,17 @@ test:
 
 pint:
 	cd docker && docker compose exec was ./vendor/bin/pint
+
+passport-init:
+	@echo "Passport OAuth 키 생성..."
+	cd docker && docker compose exec was php artisan passport:keys --force
+	@echo "키 권한 설정..."
+	cd docker && docker compose exec was chown www-data:www-data storage/oauth-private.key storage/oauth-public.key
+	cd docker && docker compose exec was chmod 600 storage/oauth-private.key
+	cd docker && docker compose exec was chmod 660 storage/oauth-public.key
+	@echo "Personal Access Client 생성..."
+	cd docker && docker compose exec was php artisan passport:client --personal --name="Local Personal Access Client" || true
+	@echo "Passport 초기화 완료!"
 
 # ==========================================
 # Xdebug
