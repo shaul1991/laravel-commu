@@ -141,6 +141,12 @@ deploy() {
     log_info "Running migrations..."
     docker exec "${PROJECT_NAME}-${target_env}" php artisan migrate --force
 
+    # Laravel 캐시 재생성
+    log_info "Rebuilding Laravel caches..."
+    docker exec "${PROJECT_NAME}-${target_env}" php artisan config:cache
+    docker exec "${PROJECT_NAME}-${target_env}" php artisan route:cache
+    docker exec "${PROJECT_NAME}-${target_env}" php artisan view:cache
+
     log_info "Deployment completed successfully!"
     log_info "Version: ${image_tag}"
     log_info "Active: ${target_env} (port ${target_port})"
