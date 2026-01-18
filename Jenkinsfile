@@ -3,14 +3,19 @@ pipeline {
 
     parameters {
         choice(
+            name: 'ENVIRONMENT',
+            choices: ['prod', 'dev'],
+            description: '배포 환경 선택'
+        )
+        choice(
             name: 'ACTION',
             choices: ['deploy', 'rollback', 'build-base'],
-            description: '실행할 작업 선택 (build-base: Base 이미지 빌드)'
+            description: '실행할 작업 선택 (build-base: Base 이미지 빌드, rollback: prod 환경만 지원)'
         )
         string(
             name: 'BRANCH',
-            defaultValue: 'master',
-            description: '배포할 브랜치 또는 태그 (deploy 시 사용)'
+            defaultValue: '',
+            description: '배포할 브랜치 또는 태그 (비워두면 환경에 따라 자동 선택: prod=master, dev=develop)'
         )
         string(
             name: 'ROLLBACK_VERSION',
@@ -20,30 +25,59 @@ pipeline {
     }
 
     environment {
-        // 프로젝트 설정
-        PROJECT_NAME = 'laravel-commu'
-        DEPLOY_PATH = '/var/www/laravel-commu'
-
-        // Docker 설정
+        // 공통 설정
         DOCKER_IMAGE_BASE = 'laravel-commu-base'
-        BLUE_PORT = '10000'
-        GREEN_PORT = '10001'
-
-        // GitHub 설정
         GIT_REPO = 'git@github.com:shaul1991/laravel-commu.git'
         GIT_CREDENTIALS_ID = 'home-server-deploy'
-
-        // Jenkins Config File ID (.env 파일)
-        ENV_CONFIG_FILE_ID = 'commu-env-prod'
-
-        // Storage 경로 (blue/green 공유)
-        STORAGE_PATH = '/var/www/laravel-commu-storage'
-
-        // Slack 설정
         SLACK_CHANNEL = '#deployments'
+
+        // 환경별 설정 (스크립트에서 동적 설정)
+        PROJECT_NAME = ''
+        DEPLOY_PATH = ''
+        STORAGE_PATH = ''
+        ENV_CONFIG_FILE_ID = ''
+        TARGET_BRANCH = ''
     }
 
     stages {
+        // ==========================================
+        // 환경 설정 초기화
+        // ==========================================
+        stage('Initialize Environment') {
+            steps {
+                script {
+                    // 환경별 변수 설정
+                    if (params.ENVIRONMENT == 'prod') {
+                        env.PROJECT_NAME = 'laravel-commu'
+                        env.DEPLOY_PATH = '/var/www/laravel-commu'
+                        env.STORAGE_PATH = '/var/www/laravel-commu-storage'
+                        env.ENV_CONFIG_FILE_ID = 'commu-env-prod'
+                        env.TARGET_BRANCH = params.BRANCH ?: 'master'
+                        env.BLUE_PORT = '10000'
+                        env.GREEN_PORT = '10001'
+                        env.COMPOSE_FILE = 'docker/docker-compose.deploy.yml'
+                    } else {
+                        env.PROJECT_NAME = 'laravel-commu-dev'
+                        env.DEPLOY_PATH = '/var/www/laravel-commu-dev'
+                        env.STORAGE_PATH = '/var/www/laravel-commu-dev-storage'
+                        env.ENV_CONFIG_FILE_ID = 'commu-env-dev'
+                        env.TARGET_BRANCH = params.BRANCH ?: 'develop'
+                        env.DEV_PORT = '10100'
+                        env.COMPOSE_FILE = 'docker/docker-compose.deploy.yml'
+                    }
+
+                    // rollback은 prod 환경에서만 지원
+                    if (params.ACTION == 'rollback' && params.ENVIRONMENT != 'prod') {
+                        error("Rollback is only supported in prod environment")
+                    }
+
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Action: ${params.ACTION}"
+                    echo "Branch: ${env.TARGET_BRANCH}"
+                }
+            }
+        }
+
         // ==========================================
         // Base 이미지 빌드 (수동 실행)
         // ==========================================
@@ -53,11 +87,11 @@ pipeline {
             }
             steps {
                 script {
-                    currentBuild.displayName = "#${BUILD_NUMBER} - build-base"
+                    currentBuild.displayName = "#${BUILD_NUMBER} - build-base (${params.ENVIRONMENT})"
                 }
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: params.BRANCH]],
+                    branches: [[name: env.TARGET_BRANCH]],
                     userRemoteConfigs: [[
                         url: env.GIT_REPO,
                         credentialsId: env.GIT_CREDENTIALS_ID
@@ -82,7 +116,7 @@ pipeline {
             }
             steps {
                 script {
-                    currentBuild.displayName = "#${BUILD_NUMBER} - deploy (${params.BRANCH})"
+                    currentBuild.displayName = "#${BUILD_NUMBER} - deploy-${params.ENVIRONMENT} (${env.TARGET_BRANCH})"
 
                     // Base 이미지 존재 확인
                     def baseImageExists = sh(
@@ -94,7 +128,7 @@ pipeline {
                         error("Base image not found. Run 'build-base' action first.")
                     }
 
-                    // Storage 디렉토리 초기화 (최초 배포 시)
+                    // Storage 디렉토리 초기화
                     sh """
                         mkdir -p ${STORAGE_PATH}/app/public
                         mkdir -p ${STORAGE_PATH}/framework/cache/data
@@ -105,37 +139,40 @@ pipeline {
                         chmod -R 775 ${STORAGE_PATH}
                     """
 
-                    // Docker 네트워크 생성 (없으면 생성)
+                    // Docker 네트워크 생성
                     sh """
                         docker network create laravel_network 2>/dev/null || true
                     """
 
-                    // 현재 활성 컨테이너 확인
-                    def blueRunning = sh(
-                        script: "docker ps -q -f name=${PROJECT_NAME}-blue",
-                        returnStdout: true
-                    ).trim()
+                    // Blue-Green 배포 대상 결정 (prod 환경만)
+                    if (params.ENVIRONMENT == 'prod') {
+                        def blueRunning = sh(
+                            script: "docker ps -q -f name=${PROJECT_NAME}-blue",
+                            returnStdout: true
+                        ).trim()
 
-                    // 배포 대상 결정 (Blue-Green 전환)
-                    if (blueRunning) {
-                        env.CURRENT_ENV = 'blue'
-                        env.TARGET_ENV = 'green'
-                        env.TARGET_PORT = env.GREEN_PORT
-                        env.CURRENT_PORT = env.BLUE_PORT
+                        if (blueRunning) {
+                            env.CURRENT_ENV = 'blue'
+                            env.TARGET_ENV = 'green'
+                            env.TARGET_PORT = env.GREEN_PORT
+                            env.CURRENT_PORT = env.BLUE_PORT
+                        } else {
+                            env.CURRENT_ENV = 'green'
+                            env.TARGET_ENV = 'blue'
+                            env.TARGET_PORT = env.BLUE_PORT
+                            env.CURRENT_PORT = env.GREEN_PORT
+                        }
+                        echo "Current: ${env.CURRENT_ENV} -> Target: ${env.TARGET_ENV}"
                     } else {
-                        env.CURRENT_ENV = 'green'
-                        env.TARGET_ENV = 'blue'
-                        env.TARGET_PORT = env.BLUE_PORT
-                        env.CURRENT_PORT = env.GREEN_PORT
+                        env.TARGET_ENV = 'dev'
+                        env.TARGET_PORT = env.DEV_PORT
                     }
-
-                    echo "Current: ${env.CURRENT_ENV} -> Target: ${env.TARGET_ENV}"
                 }
             }
         }
 
         // ==========================================
-        // 배포: 코드 업데이트 (호스트 경로 마운트하여 실행)
+        // 배포: 코드 업데이트
         // ==========================================
         stage('Update Code') {
             when {
@@ -164,17 +201,30 @@ pipeline {
                         """
                     }
 
-                    // Git fetch & reset (--entrypoint로 쉘 실행)
-                    // 로컬 변경사항을 무시하고 원격 브랜치 상태로 강제 리셋
-                    sh """
-                        docker run --rm \
-                            --entrypoint sh \
-                            -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
-                            -v /root/.ssh:/root/.ssh:ro \
-                            -w ${DEPLOY_PATH} \
-                            alpine/git:latest \
-                            -c "git config --global --add safe.directory ${DEPLOY_PATH} && git fetch origin && git checkout -f ${params.BRANCH} && git reset --hard origin/${params.BRANCH}"
-                    """
+                    // Git fetch & reset
+                    if (params.ENVIRONMENT == 'prod') {
+                        // prod: 로컬 변경사항 무시하고 강제 리셋
+                        sh """
+                            docker run --rm \
+                                --entrypoint sh \
+                                -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                                -v /root/.ssh:/root/.ssh:ro \
+                                -w ${DEPLOY_PATH} \
+                                alpine/git:latest \
+                                -c "git config --global --add safe.directory ${DEPLOY_PATH} && git fetch origin && git checkout -f ${env.TARGET_BRANCH} && git reset --hard origin/${env.TARGET_BRANCH}"
+                        """
+                    } else {
+                        // dev: 일반 pull
+                        sh """
+                            docker run --rm \
+                                --entrypoint sh \
+                                -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                                -v /root/.ssh:/root/.ssh:ro \
+                                -w ${DEPLOY_PATH} \
+                                alpine/git:latest \
+                                -c "git config --global --add safe.directory ${DEPLOY_PATH} && git fetch origin && git checkout ${env.TARGET_BRANCH} && git pull origin ${env.TARGET_BRANCH}"
+                        """
+                    }
 
                     // 배포 버전 기록
                     env.DEPLOY_VERSION = sh(
@@ -194,7 +244,7 @@ pipeline {
         }
 
         // ==========================================
-        // 배포: 의존성 설치 및 빌드 (Base 이미지 사용)
+        // 배포: 의존성 설치 및 빌드
         // ==========================================
         stage('Install Dependencies') {
             when {
@@ -222,7 +272,6 @@ pipeline {
                 configFileProvider([
                     configFile(fileId: env.ENV_CONFIG_FILE_ID, variable: 'ENV_FILE_PATH')
                 ]) {
-                    // Jenkins 컨테이너 내에서 cat으로 읽고, docker run으로 전달
                     sh """
                         cat \${ENV_FILE_PATH} | docker run --rm -i \
                             -v ${DEPLOY_PATH}:/var/www/html \
@@ -243,13 +292,16 @@ pipeline {
             }
             steps {
                 script {
-                    // 기존 대상 컨테이너 중지
+                    def containerName = params.ENVIRONMENT == 'prod' ?
+                        "${PROJECT_NAME}-${TARGET_ENV}" : PROJECT_NAME
+
+                    // 기존 컨테이너 중지
                     sh """
-                        docker stop ${PROJECT_NAME}-${TARGET_ENV} 2>/dev/null || true
-                        docker rm ${PROJECT_NAME}-${TARGET_ENV} 2>/dev/null || true
+                        docker stop ${containerName} 2>/dev/null || true
+                        docker rm ${containerName} 2>/dev/null || true
                     """
 
-                    // 새 컨테이너 시작 (docker:cli로 docker compose v2 사용)
+                    // 새 컨테이너 시작
                     sh """
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -258,23 +310,34 @@ pipeline {
                             -e APP_PATH=${DEPLOY_PATH} \
                             -e STORAGE_PATH=${STORAGE_PATH} \
                             -e ENV_FILE=${DEPLOY_PATH}/.env \
+                            -e DEPLOY_ENV=${params.ENVIRONMENT} \
                             docker:cli \
-                            docker compose -f docker/docker-compose.prod.yml up -d ${TARGET_ENV}
+                            docker compose -f ${COMPOSE_FILE} up -d ${TARGET_ENV}
                     """
 
-                    // OAuth 키 권한 수정 (www-data가 읽을 수 있도록, 600/660 권한 필수)
+                    // OAuth 키 권한 수정
                     sh """
                         sleep 5
-                        docker exec ${PROJECT_NAME}-${TARGET_ENV} sh -c 'if [ -f /var/www/html/storage/oauth-private.key ]; then chown www-data:www-data /var/www/html/storage/oauth-private.key /var/www/html/storage/oauth-public.key && chmod 600 /var/www/html/storage/oauth-private.key && chmod 660 /var/www/html/storage/oauth-public.key; fi' || true
+                        docker exec ${containerName} sh -c 'if [ -f /var/www/html/storage/oauth-private.key ]; then chown www-data:www-data /var/www/html/storage/oauth-private.key /var/www/html/storage/oauth-public.key && chmod 600 /var/www/html/storage/oauth-private.key && chmod 660 /var/www/html/storage/oauth-public.key; fi' || true
                     """
 
-                    // Laravel 캐시 생성 (컨테이너 내에서 실행)
+                    // Laravel 캐시 생성
                     sh """
-                        docker exec ${PROJECT_NAME}-${TARGET_ENV} php artisan config:cache || true
-                        docker exec ${PROJECT_NAME}-${TARGET_ENV} php artisan route:cache || true
-                        docker exec ${PROJECT_NAME}-${TARGET_ENV} php artisan view:cache || true
-                        docker exec ${PROJECT_NAME}-${TARGET_ENV} php artisan migrate --force || true
+                        docker exec ${containerName} php artisan config:cache || true
+                        docker exec ${containerName} php artisan route:cache || true
+                        docker exec ${containerName} php artisan view:cache || true
+                        docker exec ${containerName} php artisan migrate --force || true
                     """
+
+                    // dev 환경: storage 권한 설정
+                    if (params.ENVIRONMENT == 'dev') {
+                        sh """
+                            docker exec ${containerName} chown -R www-data:www-data /var/www/html/storage
+                            docker exec ${containerName} chmod -R 775 /var/www/html/storage
+                            docker exec ${containerName} php artisan storage:link || true
+                            docker exec ${containerName} sh -c 'if [ -f /var/www/html/storage/oauth-private.key ]; then chmod 600 /var/www/html/storage/oauth-private.key && chmod 660 /var/www/html/storage/oauth-public.key; fi' || true
+                        """
+                    }
                 }
             }
         }
@@ -288,15 +351,16 @@ pipeline {
             }
             steps {
                 script {
+                    def containerName = params.ENVIRONMENT == 'prod' ?
+                        "${PROJECT_NAME}-${TARGET_ENV}" : PROJECT_NAME
                     def maxRetries = 30
                     def retryCount = 0
                     def healthy = false
 
-                    // Jenkins가 Docker 컨테이너에서 실행되므로 docker exec로 내부에서 health check
                     while (retryCount < maxRetries && !healthy) {
                         sleep(2)
                         def status = sh(
-                            script: "docker exec ${PROJECT_NAME}-${TARGET_ENV} curl -sf http://localhost/up || echo 'unhealthy'",
+                            script: "docker exec ${containerName} curl -sf http://localhost/up || echo 'unhealthy'",
                             returnStdout: true
                         ).trim()
 
@@ -310,8 +374,7 @@ pipeline {
                     }
 
                     if (!healthy) {
-                        // 실패 시 컨테이너 로그 출력
-                        sh "docker logs --tail 50 ${PROJECT_NAME}-${TARGET_ENV} || true"
+                        sh "docker logs --tail 50 ${containerName} || true"
                         error("Health check failed after ${maxRetries} attempts")
                     }
                 }
@@ -319,15 +382,15 @@ pipeline {
         }
 
         // ==========================================
-        // 배포: 트래픽 전환
+        // 배포: 트래픽 전환 (prod 환경만)
         // ==========================================
         stage('Switch Traffic') {
             when {
-                expression { params.ACTION == 'deploy' }
+                expression { params.ACTION == 'deploy' && params.ENVIRONMENT == 'prod' }
             }
             steps {
                 script {
-                    // Caddy 설정 업데이트 (호스트 경로 마운트)
+                    // Caddy 설정 업데이트
                     sh """
                         docker run --rm \
                             -v ${DEPLOY_PATH}:/var/www/html \
@@ -336,8 +399,7 @@ pipeline {
                             sh /var/www/html/deploy/switch-traffic.sh ${TARGET_PORT}
                     """
 
-                    // Caddy reload (호스트의 systemd 서비스 reload)
-                    // nsenter를 사용하여 호스트 네임스페이스에서 실행
+                    // Caddy reload
                     sh """
                         docker run --rm --privileged --pid=host alpine:latest \
                             nsenter -t 1 -m -u -n -i systemctl reload caddy
@@ -357,7 +419,7 @@ pipeline {
         }
 
         // ==========================================
-        // 배포: 이전 컨테이너 정리
+        // 배포: 정리
         // ==========================================
         stage('Cleanup') {
             when {
@@ -365,10 +427,11 @@ pipeline {
             }
             steps {
                 script {
-                    // 이전 컨테이너는 롤백을 위해 유지
-                    echo "Previous container (${CURRENT_ENV}) kept for rollback"
+                    if (params.ENVIRONMENT == 'prod') {
+                        echo "Previous container (${CURRENT_ENV}) kept for rollback"
+                    }
 
-                    // npm 캐시 정리 (호스트 경로 마운트)
+                    // npm 캐시 정리
                     sh """
                         docker run --rm \
                             -v ${DEPLOY_PATH}:/var/www/html \
@@ -380,17 +443,17 @@ pipeline {
         }
 
         // ==========================================
-        // 롤백
+        // 롤백 (prod 환경만)
         // ==========================================
         stage('Rollback') {
             when {
-                expression { params.ACTION == 'rollback' }
+                expression { params.ACTION == 'rollback' && params.ENVIRONMENT == 'prod' }
             }
             steps {
                 script {
                     currentBuild.displayName = "#${BUILD_NUMBER} - rollback"
 
-                    // 현재 활성 포트 확인 (호스트 경로 마운트)
+                    // 현재 활성 포트 확인
                     def currentPort = sh(
                         script: "docker run --rm -v ${DEPLOY_PATH}:/var/www/html alpine:latest cat /var/www/html/deploy/current-port.txt 2>/dev/null || echo '${BLUE_PORT}'",
                         returnStdout: true
@@ -410,7 +473,7 @@ pipeline {
                         error("No previous version available for rollback")
                     }
 
-                    // 트래픽 전환 (호스트 경로 마운트)
+                    // 트래픽 전환
                     sh """
                         docker run --rm \
                             -v ${DEPLOY_PATH}:/var/www/html \
@@ -419,7 +482,7 @@ pipeline {
                             sh /var/www/html/deploy/switch-traffic.sh ${rollbackPort}
                     """
 
-                    // Caddy reload (호스트의 systemd 서비스 reload)
+                    // Caddy reload
                     sh """
                         docker run --rm --privileged --pid=host alpine:latest \
                             nsenter -t 1 -m -u -n -i systemctl reload caddy
@@ -434,16 +497,20 @@ pipeline {
     post {
         success {
             script {
+                def envLabel = params.ENVIRONMENT == 'prod' ? '' : '[DEV] '
                 def message = ""
+                def url = params.ENVIRONMENT == 'prod' ?
+                    'https://blogs.shaul.link' : 'https://dev-blogs.shaul.link'
+
                 switch(params.ACTION) {
                     case 'deploy':
-                        message = "배포 성공: ${PROJECT_NAME} v${env.VERSION_TAG ?: 'N/A'}"
+                        message = "${envLabel}배포 성공: ${PROJECT_NAME} v${env.VERSION_TAG ?: 'N/A'}"
                         break
                     case 'rollback':
-                        message = "롤백 성공: ${PROJECT_NAME}"
+                        message = "${envLabel}롤백 성공: ${PROJECT_NAME}"
                         break
                     case 'build-base':
-                        message = "Base 이미지 빌드 성공: ${DOCKER_IMAGE_BASE}"
+                        message = "${envLabel}Base 이미지 빌드 성공: ${DOCKER_IMAGE_BASE}"
                         break
                 }
 
@@ -453,9 +520,10 @@ pipeline {
                         color: 'good',
                         message: """
                             *${message}*
-                            - Branch: ${params.BRANCH}
+                            - Environment: ${params.ENVIRONMENT}
+                            - Branch: ${env.TARGET_BRANCH}
                             - Build: #${BUILD_NUMBER}
-                            - URL: https://blogs.shaul.link
+                            - URL: ${url}
                         """.stripIndent()
                     )
                 } catch (Exception e) {
@@ -465,16 +533,18 @@ pipeline {
         }
         failure {
             script {
+                def envLabel = params.ENVIRONMENT == 'prod' ? '' : '[DEV] '
                 def message = ""
+
                 switch(params.ACTION) {
                     case 'deploy':
-                        message = "배포 실패: ${PROJECT_NAME}"
+                        message = "${envLabel}배포 실패: ${PROJECT_NAME}"
                         break
                     case 'rollback':
-                        message = "롤백 실패: ${PROJECT_NAME}"
+                        message = "${envLabel}롤백 실패: ${PROJECT_NAME}"
                         break
                     case 'build-base':
-                        message = "Base 이미지 빌드 실패: ${DOCKER_IMAGE_BASE}"
+                        message = "${envLabel}Base 이미지 빌드 실패: ${DOCKER_IMAGE_BASE}"
                         break
                 }
 
@@ -484,7 +554,8 @@ pipeline {
                         color: 'danger',
                         message: """
                             *${message}*
-                            - Branch: ${params.BRANCH}
+                            - Environment: ${params.ENVIRONMENT}
+                            - Branch: ${env.TARGET_BRANCH}
                             - Build: #${BUILD_NUMBER}
                             - Console: ${BUILD_URL}console
                         """.stripIndent()
@@ -493,12 +564,13 @@ pipeline {
                     echo "Slack notification skipped: ${e.message}"
                 }
 
-                // 배포 실패 시 자동 롤백 시도
-                if (params.ACTION == 'deploy') {
+                // 배포 실패 시 자동 롤백 시도 (prod 환경만)
+                if (params.ACTION == 'deploy' && params.ENVIRONMENT == 'prod') {
                     echo "Attempting automatic rollback..."
                     build job: env.JOB_NAME, parameters: [
+                        string(name: 'ENVIRONMENT', value: 'prod'),
                         string(name: 'ACTION', value: 'rollback'),
-                        string(name: 'BRANCH', value: params.BRANCH)
+                        string(name: 'BRANCH', value: env.TARGET_BRANCH)
                     ], wait: false
                 }
             }
