@@ -25,10 +25,9 @@ final class OAuthTest extends TestCase
 
     public function test_지원하지_않는_프로바이더는_에러를_반환한다(): void
     {
-        $response = $this->getJson('/api/auth/oauth/invalid/redirect');
+        $response = $this->get('/api/auth/oauth/invalid/redirect');
 
-        $response->assertStatus(422)
-            ->assertJsonPath('message', 'Unsupported OAuth provider');
+        $response->assertRedirect('/login?error=unsupported_provider');
     }
 
     public function test_git_hub_소셜_로그인_리다이렉트를_수행한다(): void
@@ -47,6 +46,9 @@ final class OAuthTest extends TestCase
         $socialiteUser->shouldReceive('getName')->andReturn('Social User');
         $socialiteUser->shouldReceive('getAvatar')->andReturn('https://example.com/avatar.jpg');
         $socialiteUser->shouldReceive('getNickname')->andReturn('socialuser');
+        $socialiteUser->token = 'fake-access-token';
+        $socialiteUser->refreshToken = null;
+        $socialiteUser->expiresIn = 3600;
 
         $driver = Mockery::mock();
         $driver->shouldReceive('stateless')->andReturnSelf();
@@ -58,14 +60,9 @@ final class OAuthTest extends TestCase
 
         $response = $this->get('/api/auth/oauth/google/callback?code=valid-auth-code');
 
-        $response->assertOk()
-            ->assertJsonStructure([
-                'data' => [
-                    'user' => ['id', 'name', 'email', 'username'],
-                    'token',
-                ],
-                'message',
-            ]);
+        $response->assertOk();
+        $response->assertSee('localStorage.setItem', false);
+        $response->assertSee("window.location.href = '/'", false);
 
         $this->assertDatabaseHas('users', [
             'email' => 'social@example.com',
@@ -84,6 +81,9 @@ final class OAuthTest extends TestCase
         $socialiteUser->shouldReceive('getName')->andReturn('Existing User');
         $socialiteUser->shouldReceive('getAvatar')->andReturn('https://example.com/avatar.jpg');
         $socialiteUser->shouldReceive('getNickname')->andReturn('existinguser');
+        $socialiteUser->token = 'fake-access-token';
+        $socialiteUser->refreshToken = null;
+        $socialiteUser->expiresIn = 3600;
 
         $driver = Mockery::mock();
         $driver->shouldReceive('stateless')->andReturnSelf();
@@ -95,19 +95,18 @@ final class OAuthTest extends TestCase
 
         $response = $this->get('/api/auth/oauth/github/callback?code=valid-auth-code');
 
-        $response->assertOk()
-            ->assertJsonPath('data.user.email', 'existing@example.com');
+        $response->assertOk();
+        $response->assertSee('localStorage.setItem', false);
 
         // Ensure no new user was created
         $this->assertEquals(1, UserModel::count());
     }
 
-    public function test_콜백에_코드가_없으면_에러가_발생한다(): void
+    public function test_콜백에_코드가_없으면_로그인_페이지로_리다이렉트된다(): void
     {
-        $response = $this->getJson('/api/auth/oauth/google/callback');
+        $response = $this->get('/api/auth/oauth/google/callback');
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['code']);
+        $response->assertRedirect('/login?error=oauth_failed');
     }
 
     protected function tearDown(): void
