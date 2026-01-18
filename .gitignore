@@ -5,6 +5,7 @@
 .env.develop
 .env.production
 .claude/*.local.md
+.claude/*.local.json
 docker/.env
 .phpactor.json
 .phpunit.result.cache
