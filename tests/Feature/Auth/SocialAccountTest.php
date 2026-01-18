@@ -156,16 +156,9 @@ final class SocialAccountTest extends TestCase
 
         $response = $this->get('/api/auth/oauth/github/callback?code=valid_code');
 
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'data' => [
-                    'user' => ['id', 'name', 'email', 'username'],
-                    'token',
-                ],
-                'message',
-            ]);
-
-        $this->assertEquals($user->uuid, $response->json('data.user.id'));
+        $response->assertStatus(200);
+        $response->assertSee('localStorage.setItem', false);
+        $response->assertSee($user->uuid, false);
     }
 
     #[Test]

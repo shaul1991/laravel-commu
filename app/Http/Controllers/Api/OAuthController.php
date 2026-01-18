@@ -8,9 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Infrastructure\Persistence\Eloquent\SocialAccountModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -20,31 +20,37 @@ final class OAuthController extends Controller
 {
     private const SUPPORTED_PROVIDERS = ['google', 'github'];
 
-    public function redirect(string $provider): RedirectResponse|JsonResponse
+    public function redirect(string $provider): RedirectResponse
     {
         if (! in_array($provider, self::SUPPORTED_PROVIDERS, true)) {
-            return response()->json([
-                'message' => 'Unsupported OAuth provider',
-            ], 422);
+            return redirect('/login?error=unsupported_provider');
         }
 
         return Socialite::driver($provider)->stateless()->redirect();
     }
 
-    public function callback(Request $request, string $provider): JsonResponse
+    public function callback(Request $request, string $provider): Response|RedirectResponse
     {
         if (! in_array($provider, self::SUPPORTED_PROVIDERS, true)) {
-            return response()->json([
-                'message' => 'Unsupported OAuth provider',
-            ], 422);
+            return redirect('/login?error=unsupported_provider');
         }
 
-        $request->validate([
-            'code' => ['required', 'string'],
-        ]);
+        if (! $request->has('code')) {
+            return redirect('/login?error=oauth_failed');
+        }
 
         try {
             $socialUser = Socialite::driver($provider)->stateless()->user();
+
+            // Check if user was previously deleted (soft deleted)
+            $deletedUser = UserModel::withTrashed()
+                ->where('email', $socialUser->getEmail())
+                ->whereNotNull('deleted_at')
+                ->first();
+
+            if ($deletedUser) {
+                return redirect('/login?error=account_deleted');
+            }
 
             $user = DB::transaction(function () use ($provider, $socialUser) {
                 // Step 1: Check if social account exists
@@ -92,26 +98,36 @@ final class OAuthController extends Controller
             // Create token
             $token = $user->createToken('oauth-token')->plainTextToken;
 
-            return response()->json([
-                'data' => [
-                    'user' => [
-                        'id' => $user->uuid,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'username' => $user->username,
-                        'bio' => $user->bio,
-                        'avatar_url' => $user->avatar_url,
-                        'email_verified_at' => $user->email_verified_at?->toIso8601String(),
-                        'created_at' => $user->created_at->toIso8601String(),
-                    ],
-                    'token' => $token,
-                ],
-                'message' => 'Login successful',
+            // Return HTML that stores token and redirects
+            $userData = json_encode([
+                'id' => $user->uuid,
+                'name' => $user->name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'bio' => $user->bio,
+                'avatar_url' => $user->avatar_url,
             ]);
+
+            $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>로그인 중...</title>
+</head>
+<body>
+    <script>
+        localStorage.setItem('auth_token', '{$token}');
+        localStorage.setItem('auth_user', '{$userData}');
+        window.location.href = '/';
+    </script>
+</body>
+</html>
+HTML;
+
+            return response($html)->header('Content-Type', 'text/html');
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'OAuth authentication failed',
-            ], 400);
+            return redirect('/login?error=oauth_failed');
         }
     }
 

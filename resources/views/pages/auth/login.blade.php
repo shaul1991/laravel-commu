@@ -35,7 +35,7 @@
                         <svg class="h-5 w-5 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                         </svg>
-                        <p class="text-sm text-red-700" x-text="error === 'oauth_failed' ? '소셜 로그인에 실패했습니다. 다시 시도해주세요.' : '로그인에 실패했습니다.'"></p>
+                        <p class="text-sm text-red-700" x-text="error === 'account_deleted' ? '탈퇴한 계정입니다. 재가입은 고객센터로 문의해주세요.' : (error === 'oauth_failed' ? '소셜 로그인에 실패했습니다. 다시 시도해주세요.' : '로그인에 실패했습니다.')"></p>
                     </div>
                 </div>
 
