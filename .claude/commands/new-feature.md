@@ -56,25 +56,12 @@ Red → Green → Refactor
 
 ## Instructions
 
-### Phase 0: Git Worktree
-작업 시작 전 git worktree로 독립된 작업 환경을 생성한다:
-
-**이유**: 병렬 작업 시 다른 브랜치에 영향을 주지 않기 위함
+### Phase 0: Git Branch
+작업 시작 전 feature 브랜치를 생성한다:
 
 ```bash
-# 1. worktree 디렉토리 존재 여부 확인
-ls ../laravel-commu-worktrees/ 2>/dev/null || mkdir -p ../laravel-commu-worktrees
-
-# 2. git worktree로 새 브랜치 생성
-git worktree add -b feature/$1 ../laravel-commu-worktrees/feature-$1 master
-
-# 3. 해당 worktree 디렉토리에서 작업 수행
-cd ../laravel-commu-worktrees/feature-$1
-```
-
-**Worktree 제거 시점**: PR이 머지된 후 제거
-```bash
-git worktree remove ../laravel-commu-worktrees/feature-$1
+# 1. feature 브랜치 생성
+git checkout -b feature/$1 master
 ```
 
 ### Phase 1: PM Agent
