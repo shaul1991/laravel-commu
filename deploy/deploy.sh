@@ -180,6 +180,17 @@ deploy() {
     log_info "Running migrations..."
     docker exec "${PROJECT_NAME}-${target_env}" php artisan migrate --force
 
+    # Laravel 캐시 재생성
+    log_info "Rebuilding Laravel caches..."
+    docker exec "${PROJECT_NAME}-${target_env}" php artisan config:cache
+    docker exec "${PROJECT_NAME}-${target_env}" php artisan route:cache
+    docker exec "${PROJECT_NAME}-${target_env}" php artisan view:cache
+
+    # OAuth 키 파일 권한 수정 (Passport 보안 요구사항: 600 또는 660)
+    log_info "Fixing OAuth key permissions..."
+    docker exec "${PROJECT_NAME}-${target_env}" chmod 660 /var/www/html/storage/oauth-private.key 2>/dev/null || true
+    docker exec "${PROJECT_NAME}-${target_env}" chmod 660 /var/www/html/storage/oauth-public.key 2>/dev/null || true
+
     log_info "Deployment completed successfully!"
     log_info "Version: ${image_tag}"
     log_info "Active: ${target_env} (port ${target_port})"
