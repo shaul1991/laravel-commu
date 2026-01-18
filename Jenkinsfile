@@ -30,13 +30,6 @@ pipeline {
         GIT_REPO = 'git@github.com:shaul1991/laravel-commu.git'
         GIT_CREDENTIALS_ID = 'home-server-deploy'
         SLACK_CHANNEL = '#deployments'
-
-        // 환경별 설정 (스크립트에서 동적 설정)
-        PROJECT_NAME = ''
-        DEPLOY_PATH = ''
-        STORAGE_PATH = ''
-        ENV_CONFIG_FILE_ID = ''
-        TARGET_BRANCH = ''
     }
 
     stages {
@@ -130,13 +123,13 @@ pipeline {
 
                     // Storage 디렉토리 초기화
                     sh """
-                        mkdir -p ${STORAGE_PATH}/app/public
-                        mkdir -p ${STORAGE_PATH}/framework/cache/data
-                        mkdir -p ${STORAGE_PATH}/framework/sessions
-                        mkdir -p ${STORAGE_PATH}/framework/views
-                        mkdir -p ${STORAGE_PATH}/logs
-                        chown -R www-data:www-data ${STORAGE_PATH} || true
-                        chmod -R 775 ${STORAGE_PATH}
+                        mkdir -p ${env.STORAGE_PATH}/app/public
+                        mkdir -p ${env.STORAGE_PATH}/framework/cache/data
+                        mkdir -p ${env.STORAGE_PATH}/framework/sessions
+                        mkdir -p ${env.STORAGE_PATH}/framework/views
+                        mkdir -p ${env.STORAGE_PATH}/logs
+                        chown -R www-data:www-data ${env.STORAGE_PATH} || true
+                        chmod -R 775 ${env.STORAGE_PATH}
                     """
 
                     // Docker 네트워크 생성
@@ -147,7 +140,7 @@ pipeline {
                     // Blue-Green 배포 대상 결정 (prod 환경만)
                     if (params.ENVIRONMENT == 'prod') {
                         def blueRunning = sh(
-                            script: "docker ps -q -f name=${PROJECT_NAME}-blue",
+                            script: "docker ps -q -f name=${env.PROJECT_NAME}-blue",
                             returnStdout: true
                         ).trim()
 
@@ -181,11 +174,11 @@ pipeline {
             steps {
                 script {
                     // 배포 디렉토리 생성
-                    sh "mkdir -p ${DEPLOY_PATH}"
+                    sh "mkdir -p ${env.DEPLOY_PATH}"
 
                     // Git 저장소 존재 여부 확인
                     def gitExists = sh(
-                        script: "docker run --rm -v ${DEPLOY_PATH}:${DEPLOY_PATH} -w ${DEPLOY_PATH} alpine:latest test -d .git && echo 'yes' || echo 'no'",
+                        script: "docker run --rm -v ${env.DEPLOY_PATH}:${env.DEPLOY_PATH} -w ${env.DEPLOY_PATH} alpine:latest test -d .git && echo 'yes' || echo 'no'",
                         returnStdout: true
                     ).trim()
 
@@ -194,10 +187,10 @@ pipeline {
                         echo "Initial deployment: Cloning repository..."
                         sh """
                             docker run --rm \
-                                -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                                -v ${env.DEPLOY_PATH}:${env.DEPLOY_PATH} \
                                 -v /root/.ssh:/root/.ssh:ro \
                                 alpine/git:latest \
-                                clone ${GIT_REPO} ${DEPLOY_PATH}
+                                clone ${GIT_REPO} ${env.DEPLOY_PATH}
                         """
                     }
 
@@ -207,28 +200,28 @@ pipeline {
                         sh """
                             docker run --rm \
                                 --entrypoint sh \
-                                -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                                -v ${env.DEPLOY_PATH}:${env.DEPLOY_PATH} \
                                 -v /root/.ssh:/root/.ssh:ro \
-                                -w ${DEPLOY_PATH} \
+                                -w ${env.DEPLOY_PATH} \
                                 alpine/git:latest \
-                                -c "git config --global --add safe.directory ${DEPLOY_PATH} && git fetch origin && git checkout -f ${env.TARGET_BRANCH} && git reset --hard origin/${env.TARGET_BRANCH}"
+                                -c "git config --global --add safe.directory ${env.DEPLOY_PATH} && git fetch origin && git checkout -f ${env.TARGET_BRANCH} && git reset --hard origin/${env.TARGET_BRANCH}"
                         """
                     } else {
                         // dev: 일반 pull
                         sh """
                             docker run --rm \
                                 --entrypoint sh \
-                                -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
+                                -v ${env.DEPLOY_PATH}:${env.DEPLOY_PATH} \
                                 -v /root/.ssh:/root/.ssh:ro \
-                                -w ${DEPLOY_PATH} \
+                                -w ${env.DEPLOY_PATH} \
                                 alpine/git:latest \
-                                -c "git config --global --add safe.directory ${DEPLOY_PATH} && git fetch origin && git checkout ${env.TARGET_BRANCH} && git pull origin ${env.TARGET_BRANCH}"
+                                -c "git config --global --add safe.directory ${env.DEPLOY_PATH} && git fetch origin && git checkout ${env.TARGET_BRANCH} && git pull origin ${env.TARGET_BRANCH}"
                         """
                     }
 
                     // 배포 버전 기록
                     env.DEPLOY_VERSION = sh(
-                        script: "docker run --rm -v ${DEPLOY_PATH}:${DEPLOY_PATH} -w ${DEPLOY_PATH} alpine/git:latest rev-parse --short HEAD",
+                        script: "docker run --rm -v ${env.DEPLOY_PATH}:${env.DEPLOY_PATH} -w ${env.DEPLOY_PATH} alpine/git:latest rev-parse --short HEAD",
                         returnStdout: true
                     ).trim()
 
@@ -251,13 +244,15 @@ pipeline {
                 expression { params.ACTION == 'deploy' }
             }
             steps {
-                sh """
-                    docker run --rm \
-                        -v ${DEPLOY_PATH}:/var/www/html \
-                        -w /var/www/html \
-                        ${DOCKER_IMAGE_BASE}:latest \
-                        sh -c "composer install --no-dev --optimize-autoloader --no-interaction && npm ci --production=false && npm run build"
-                """
+                script {
+                    sh """
+                        docker run --rm \
+                            -v ${env.DEPLOY_PATH}:/var/www/html \
+                            -w /var/www/html \
+                            ${DOCKER_IMAGE_BASE}:latest \
+                            sh -c "composer install --no-dev --optimize-autoloader --no-interaction && npm ci --production=false && npm run build"
+                    """
+                }
             }
         }
 
@@ -269,16 +264,18 @@ pipeline {
                 expression { params.ACTION == 'deploy' }
             }
             steps {
-                configFileProvider([
-                    configFile(fileId: env.ENV_CONFIG_FILE_ID, variable: 'ENV_FILE_PATH')
-                ]) {
-                    sh """
-                        cat \${ENV_FILE_PATH} | docker run --rm -i \
-                            -v ${DEPLOY_PATH}:/var/www/html \
-                            alpine:latest \
-                            sh -c 'cat > /var/www/html/.env'
-                    """
-                    echo ".env file injected from Jenkins Config File Provider"
+                script {
+                    configFileProvider([
+                        configFile(fileId: env.ENV_CONFIG_FILE_ID, variable: 'ENV_FILE_PATH')
+                    ]) {
+                        sh """
+                            cat \${ENV_FILE_PATH} | docker run --rm -i \
+                                -v ${env.DEPLOY_PATH}:/var/www/html \
+                                alpine:latest \
+                                sh -c 'cat > /var/www/html/.env'
+                        """
+                        echo ".env file injected from Jenkins Config File Provider"
+                    }
                 }
             }
         }
@@ -293,7 +290,7 @@ pipeline {
             steps {
                 script {
                     def containerName = params.ENVIRONMENT == 'prod' ?
-                        "${PROJECT_NAME}-${TARGET_ENV}" : PROJECT_NAME
+                        "${env.PROJECT_NAME}-${env.TARGET_ENV}" : env.PROJECT_NAME
 
                     // 기존 컨테이너 중지
                     sh """
@@ -305,14 +302,14 @@ pipeline {
                     sh """
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
-                            -v ${DEPLOY_PATH}:${DEPLOY_PATH} \
-                            -w ${DEPLOY_PATH} \
-                            -e APP_PATH=${DEPLOY_PATH} \
-                            -e STORAGE_PATH=${STORAGE_PATH} \
-                            -e ENV_FILE=${DEPLOY_PATH}/.env \
+                            -v ${env.DEPLOY_PATH}:${env.DEPLOY_PATH} \
+                            -w ${env.DEPLOY_PATH} \
+                            -e APP_PATH=${env.DEPLOY_PATH} \
+                            -e STORAGE_PATH=${env.STORAGE_PATH} \
+                            -e ENV_FILE=${env.DEPLOY_PATH}/.env \
                             -e DEPLOY_ENV=${params.ENVIRONMENT} \
                             docker:cli \
-                            docker compose -f ${COMPOSE_FILE} up -d ${TARGET_ENV}
+                            docker compose -f ${env.COMPOSE_FILE} up -d ${env.TARGET_ENV}
                     """
 
                     // OAuth 키 권한 수정
@@ -352,7 +349,7 @@ pipeline {
             steps {
                 script {
                     def containerName = params.ENVIRONMENT == 'prod' ?
-                        "${PROJECT_NAME}-${TARGET_ENV}" : PROJECT_NAME
+                        "${env.PROJECT_NAME}-${env.TARGET_ENV}" : env.PROJECT_NAME
                     def maxRetries = 30
                     def retryCount = 0
                     def healthy = false
@@ -393,10 +390,10 @@ pipeline {
                     // Caddy 설정 업데이트
                     sh """
                         docker run --rm \
-                            -v ${DEPLOY_PATH}:/var/www/html \
+                            -v ${env.DEPLOY_PATH}:/var/www/html \
                             -v /etc/caddy:/etc/caddy \
                             alpine:latest \
-                            sh /var/www/html/deploy/switch-traffic.sh ${TARGET_PORT}
+                            sh /var/www/html/deploy/switch-traffic.sh ${env.TARGET_PORT}
                     """
 
                     // Caddy reload
@@ -408,12 +405,12 @@ pipeline {
                     // 배포 버전 기록
                     sh """
                         docker run --rm \
-                            -v ${DEPLOY_PATH}:/var/www/html \
+                            -v ${env.DEPLOY_PATH}:/var/www/html \
                             alpine:latest \
-                            sh -c "echo '${VERSION_TAG}' >> /var/www/html/deploy/versions.log && tail -10 /var/www/html/deploy/versions.log > /var/www/html/deploy/versions.tmp && mv /var/www/html/deploy/versions.tmp /var/www/html/deploy/versions.log"
+                            sh -c "echo '${env.VERSION_TAG}' >> /var/www/html/deploy/versions.log && tail -10 /var/www/html/deploy/versions.log > /var/www/html/deploy/versions.tmp && mv /var/www/html/deploy/versions.tmp /var/www/html/deploy/versions.log"
                     """
 
-                    echo "Traffic switched to ${TARGET_ENV} (port ${TARGET_PORT})"
+                    echo "Traffic switched to ${env.TARGET_ENV} (port ${env.TARGET_PORT})"
                 }
             }
         }
@@ -428,13 +425,13 @@ pipeline {
             steps {
                 script {
                     if (params.ENVIRONMENT == 'prod') {
-                        echo "Previous container (${CURRENT_ENV}) kept for rollback"
+                        echo "Previous container (${env.CURRENT_ENV}) kept for rollback"
                     }
 
                     // npm 캐시 정리
                     sh """
                         docker run --rm \
-                            -v ${DEPLOY_PATH}:/var/www/html \
+                            -v ${env.DEPLOY_PATH}:/var/www/html \
                             alpine:latest \
                             rm -rf /var/www/html/node_modules/.cache 2>/dev/null || true
                     """
@@ -455,7 +452,7 @@ pipeline {
 
                     // 현재 활성 포트 확인
                     def currentPort = sh(
-                        script: "docker run --rm -v ${DEPLOY_PATH}:/var/www/html alpine:latest cat /var/www/html/deploy/current-port.txt 2>/dev/null || echo '${BLUE_PORT}'",
+                        script: "docker run --rm -v ${env.DEPLOY_PATH}:/var/www/html alpine:latest cat /var/www/html/deploy/current-port.txt 2>/dev/null || echo '${env.BLUE_PORT}'",
                         returnStdout: true
                     ).trim()
 
@@ -465,7 +462,7 @@ pipeline {
 
                     // 롤백 컨테이너 상태 확인
                     def rollbackRunning = sh(
-                        script: "docker ps -q -f name=${PROJECT_NAME}-${rollbackEnv}",
+                        script: "docker ps -q -f name=${env.PROJECT_NAME}-${rollbackEnv}",
                         returnStdout: true
                     ).trim()
 
@@ -476,7 +473,7 @@ pipeline {
                     // 트래픽 전환
                     sh """
                         docker run --rm \
-                            -v ${DEPLOY_PATH}:/var/www/html \
+                            -v ${env.DEPLOY_PATH}:/var/www/html \
                             -v /etc/caddy:/etc/caddy \
                             alpine:latest \
                             sh /var/www/html/deploy/switch-traffic.sh ${rollbackPort}
@@ -498,16 +495,17 @@ pipeline {
         success {
             script {
                 def envLabel = params.ENVIRONMENT == 'prod' ? '' : '[DEV] '
+                def projectName = env.PROJECT_NAME ?: (params.ENVIRONMENT == 'prod' ? 'laravel-commu' : 'laravel-commu-dev')
                 def message = ""
                 def url = params.ENVIRONMENT == 'prod' ?
                     'https://blogs.shaul.link' : 'https://dev-blogs.shaul.link'
 
                 switch(params.ACTION) {
                     case 'deploy':
-                        message = "${envLabel}배포 성공: ${PROJECT_NAME} v${env.VERSION_TAG ?: 'N/A'}"
+                        message = "${envLabel}배포 성공: ${projectName} v${env.VERSION_TAG ?: 'N/A'}"
                         break
                     case 'rollback':
-                        message = "${envLabel}롤백 성공: ${PROJECT_NAME}"
+                        message = "${envLabel}롤백 성공: ${projectName}"
                         break
                     case 'build-base':
                         message = "${envLabel}Base 이미지 빌드 성공: ${DOCKER_IMAGE_BASE}"
@@ -521,7 +519,7 @@ pipeline {
                         message: """
                             *${message}*
                             - Environment: ${params.ENVIRONMENT}
-                            - Branch: ${env.TARGET_BRANCH}
+                            - Branch: ${env.TARGET_BRANCH ?: 'N/A'}
                             - Build: #${BUILD_NUMBER}
                             - URL: ${url}
                         """.stripIndent()
@@ -534,14 +532,15 @@ pipeline {
         failure {
             script {
                 def envLabel = params.ENVIRONMENT == 'prod' ? '' : '[DEV] '
+                def projectName = env.PROJECT_NAME ?: (params.ENVIRONMENT == 'prod' ? 'laravel-commu' : 'laravel-commu-dev')
                 def message = ""
 
                 switch(params.ACTION) {
                     case 'deploy':
-                        message = "${envLabel}배포 실패: ${PROJECT_NAME}"
+                        message = "${envLabel}배포 실패: ${projectName}"
                         break
                     case 'rollback':
-                        message = "${envLabel}롤백 실패: ${PROJECT_NAME}"
+                        message = "${envLabel}롤백 실패: ${projectName}"
                         break
                     case 'build-base':
                         message = "${envLabel}Base 이미지 빌드 실패: ${DOCKER_IMAGE_BASE}"
@@ -555,7 +554,7 @@ pipeline {
                         message: """
                             *${message}*
                             - Environment: ${params.ENVIRONMENT}
-                            - Branch: ${env.TARGET_BRANCH}
+                            - Branch: ${env.TARGET_BRANCH ?: 'N/A'}
                             - Build: #${BUILD_NUMBER}
                             - Console: ${BUILD_URL}console
                         """.stripIndent()
@@ -570,7 +569,7 @@ pipeline {
                     build job: env.JOB_NAME, parameters: [
                         string(name: 'ENVIRONMENT', value: 'prod'),
                         string(name: 'ACTION', value: 'rollback'),
-                        string(name: 'BRANCH', value: env.TARGET_BRANCH)
+                        string(name: 'BRANCH', value: env.TARGET_BRANCH ?: 'master')
                     ], wait: false
                 }
             }
