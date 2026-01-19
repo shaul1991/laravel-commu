@@ -165,13 +165,7 @@ function notificationDropdown() {
 
         async fetchUnreadCount() {
             try {
-                const response = await fetch('/api/notifications/unread-count', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    credentials: 'same-origin'
-                });
+                const response = await window.auth.fetch('/api/notifications/unread-count');
 
                 if (response.ok) {
                     const data = await response.json();
@@ -185,13 +179,7 @@ function notificationDropdown() {
         async fetchNotifications() {
             this.loading = true;
             try {
-                const response = await fetch('/api/notifications?per_page=10', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    credentials: 'same-origin'
-                });
+                const response = await window.auth.fetch('/api/notifications?per_page=10');
 
                 if (response.ok) {
                     const data = await response.json();
@@ -206,13 +194,8 @@ function notificationDropdown() {
 
         async markAllAsRead() {
             try {
-                const response = await fetch('/api/notifications/read-all', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    credentials: 'same-origin'
+                const response = await window.auth.fetch('/api/notifications/read-all', {
+                    method: 'POST'
                 });
 
                 if (response.ok) {
@@ -228,13 +211,8 @@ function notificationDropdown() {
             // Mark as read
             if (!notification.is_read) {
                 try {
-                    await fetch(`/api/notifications/${notification.id}/read`, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                        },
-                        credentials: 'same-origin'
+                    await window.auth.fetch(`/api/notifications/${notification.id}/read`, {
+                        method: 'POST'
                     });
 
                     notification.is_read = true;

@@ -347,12 +347,7 @@
                     }
 
                     // Fetch notification settings
-                    const notifResponse = await fetch('/api/settings/notifications', {
-                        headers: {
-                            'Accept': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        }
-                    });
+                    const notifResponse = await window.auth.fetch('/api/settings/notifications');
 
                     if (notifResponse.ok) {
                         const notifData = await notifResponse.json();
@@ -374,13 +369,8 @@
                 this.errors = {};
 
                 try {
-                    const response = await fetch('/api/users/me', {
+                    const response = await window.auth.fetch('/api/users/me', {
                         method: 'PUT',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        },
                         body: JSON.stringify({
                             name: this.profile.name,
                             bio: this.profile.bio
@@ -419,13 +409,8 @@
                 this.clearMessages();
 
                 try {
-                    const response = await fetch('/api/settings/notifications', {
+                    const response = await window.auth.fetch('/api/settings/notifications', {
                         method: 'PUT',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        },
                         body: JSON.stringify(this.notifications)
                     });
 
@@ -451,13 +436,8 @@
                 this.clearMessages();
 
                 try {
-                    const response = await fetch('/api/settings/account', {
+                    const response = await window.auth.fetch('/api/settings/account', {
                         method: 'DELETE',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        },
                         body: JSON.stringify({
                             confirmation: this.deleteConfirmation
                         })
@@ -501,12 +481,7 @@
             // Social Account Linking Methods
             async fetchSocialAccounts() {
                 try {
-                    const response = await fetch('/api/auth/social-accounts', {
-                        headers: {
-                            'Accept': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        }
-                    });
+                    const response = await window.auth.fetch('/api/auth/social-accounts');
                     if (response.ok) {
                         const data = await response.json();
                         this.socialAccounts = data.data || { github: null };

@@ -326,13 +326,8 @@
 
                 this.followLoading = true;
                 try {
-                    const response = await fetch(`/api/users/${this.username}/follow`, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            ...window.auth.getAuthHeaders()
-                        }
+                    const response = await window.auth.fetch(`/api/users/${this.username}/follow`, {
+                        method: 'POST'
                     });
 
                     if (response.ok) {

@@ -278,13 +278,8 @@
                     }
 
                     try {
-                        const response = await fetch(`/api/articles/${this.slug}/like`, {
-                            method: 'POST',
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                ...window.auth.getAuthHeaders()
-                            }
+                        const response = await window.auth.fetch(`/api/articles/${this.slug}/like`, {
+                            method: 'POST'
                         });
 
                         if (response.ok) {
@@ -312,13 +307,8 @@
                     this.deleting = true;
 
                     try {
-                        const response = await fetch(`/api/articles/${this.slug}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                ...window.auth.getAuthHeaders()
-                            }
+                        const response = await window.auth.fetch(`/api/articles/${this.slug}`, {
+                            method: 'DELETE'
                         });
 
                         if (response.ok) {

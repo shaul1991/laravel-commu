@@ -6,6 +6,9 @@
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_KEY = 'auth_user';
 
+// Token refresh promise for debouncing concurrent refresh requests
+let refreshPromise = null;
+
 export const auth = {
     /**
      * Get stored auth token
@@ -129,8 +132,28 @@ export const auth = {
     /**
      * Refresh access token using refresh token cookie
      * Returns new access token or null if refresh fails
+     * Uses debouncing to prevent concurrent refresh requests
      */
     async refreshToken() {
+        // If already refreshing, return the existing promise
+        if (refreshPromise) {
+            return refreshPromise;
+        }
+
+        refreshPromise = this._doRefreshToken();
+
+        try {
+            return await refreshPromise;
+        } finally {
+            refreshPromise = null;
+        }
+    },
+
+    /**
+     * Internal method to perform the actual token refresh
+     * @private
+     */
+    async _doRefreshToken() {
         try {
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',

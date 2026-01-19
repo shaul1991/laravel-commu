@@ -156,13 +156,7 @@ function notificationsPage() {
                     params.append('unread_only', 'true');
                 }
 
-                const response = await fetch(`/api/notifications?${params}`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    credentials: 'same-origin'
-                });
+                const response = await window.auth.fetch(`/api/notifications?${params}`);
 
                 if (response.ok) {
                     const data = await response.json();
@@ -184,13 +178,8 @@ function notificationsPage() {
 
         async markAllAsRead() {
             try {
-                const response = await fetch('/api/notifications/read-all', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    credentials: 'same-origin'
+                const response = await window.auth.fetch('/api/notifications/read-all', {
+                    method: 'POST'
                 });
 
                 if (response.ok) {
@@ -206,13 +195,8 @@ function notificationsPage() {
             // Mark as read
             if (!notification.is_read) {
                 try {
-                    await fetch(`/api/notifications/${notification.id}/read`, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
-                        },
-                        credentials: 'same-origin'
+                    await window.auth.fetch(`/api/notifications/${notification.id}/read`, {
+                        method: 'POST'
                     });
 
                     notification.is_read = true;

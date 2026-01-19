@@ -274,11 +274,8 @@
                         const formData = new FormData();
                         formData.append('image', file);
 
-                        const response = await fetch('/api/images/upload', {
+                        const response = await window.auth.fetch('/api/images/upload', {
                             method: 'POST',
-                            headers: {
-                                ...window.auth.getAuthHeaders()
-                            },
                             body: formData
                         });
 
@@ -314,12 +311,8 @@
                     this.success = null;
 
                     try {
-                        const response = await fetch('/api/articles', {
+                        const response = await window.auth.fetch('/api/articles', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...window.auth.getAuthHeaders()
-                            },
                             body: JSON.stringify({
                                 title: this.title,
                                 content: this.content,
@@ -361,12 +354,8 @@
                     this.success = null;
 
                     try {
-                        const response = await fetch('/api/articles', {
+                        const response = await window.auth.fetch('/api/articles', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...window.auth.getAuthHeaders()
-                            },
                             body: JSON.stringify({
                                 title: this.title,
                                 content: this.content,
