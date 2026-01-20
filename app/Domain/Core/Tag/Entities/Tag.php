@@ -30,6 +30,22 @@ class Tag
         );
     }
 
+    public static function reconstitute(
+        TagId $id,
+        string $name,
+        string $slug,
+        int $articleCount,
+        DateTimeImmutable $createdAt
+    ): self {
+        return new self(
+            id: $id,
+            name: $name,
+            slug: $slug,
+            articleCount: $articleCount,
+            createdAt: $createdAt
+        );
+    }
+
     private static function generateSlug(string $name): string
     {
         $slug = strtolower($name);

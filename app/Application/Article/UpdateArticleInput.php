@@ -11,7 +11,7 @@ final readonly class UpdateArticleInput
         public string $slug,
         public string $title,
         public string $content,
-        public string $category,
+        public ?string $category = null,
         public bool $isDraft = false
     ) {}
 }

@@ -126,7 +126,7 @@ final class SearchArticlesTest extends TestCase
 
     public function test_검색_결과가_없으면_빈_배열을_반환한다(): void
     {
-        $response = $this->getJson('/api/search/articles?q=존재하지않는검색어');
+        $response = $this->getJson('/api/search/articles?q='.urlencode('존재하지않는검색어'));
 
         $response->assertOk()
             ->assertJsonPath('meta.total', 0)

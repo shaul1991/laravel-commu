@@ -10,7 +10,7 @@ final readonly class CreateArticleInput
         public string $authorId,
         public string $title,
         public string $content,
-        public string $category,
+        public ?string $category = null,
         public bool $isDraft = false
     ) {}
 }

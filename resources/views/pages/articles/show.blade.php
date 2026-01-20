@@ -120,7 +120,7 @@
                     <div class="max-w-4xl mx-auto">
                         {{-- Article Body --}}
                         <article>
-                            <div class="prose-article" x-html="article.content_html"></div>
+                            <div class="prose-article" x-html="article.content_html" x-effect="if (article?.content_html) { $nextTick(() => window.mermaid?.render($el)) }"></div>
 
                             {{-- Tags --}}
                             <template x-if="article.tags && article.tags.length > 0">

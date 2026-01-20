@@ -76,7 +76,7 @@ final class SearchUsersTest extends TestCase
 
     public function test_검색_결과가_없으면_빈_배열을_반환한다(): void
     {
-        $response = $this->getJson('/api/search/users?q=존재하지않는사용자');
+        $response = $this->getJson('/api/search/users?q='.urlencode('존재하지않는사용자'));
 
         $response->assertOk()
             ->assertJsonCount(0, 'data');

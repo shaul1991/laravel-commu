@@ -226,6 +226,46 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                 </label>
+                                <div class="w-px h-5 bg-neutral-300 mx-1"></div>
+                                {{-- Mermaid Dropdown --}}
+                                <div class="relative">
+                                    <button type="button" class="p-2 rounded hover:bg-neutral-200" title="다이어그램" @click="showMermaidDropdown = !showMermaidDropdown">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="showMermaidDropdown" x-cloak @click.outside="showMermaidDropdown = false" @keydown.escape.window="showMermaidDropdown = false"
+                                         class="absolute left-0 top-full mt-1 w-48 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 py-1">
+                                        <button type="button" @click="insertMermaid('flowchart')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                            플로우차트
+                                        </button>
+                                        <button type="button" @click="insertMermaid('sequence')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                            시퀀스 다이어그램
+                                        </button>
+                                        <button type="button" @click="insertMermaid('class')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                            클래스 다이어그램
+                                        </button>
+                                        <button type="button" @click="insertMermaid('state')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                            상태 다이어그램
+                                        </button>
+                                        <button type="button" @click="insertMermaid('er')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+                                            ER 다이어그램
+                                        </button>
+                                        <button type="button" @click="insertMermaid('gantt')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                            간트 차트
+                                        </button>
+                                        <button type="button" @click="insertMermaid('pie')" class="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 flex items-center gap-2">
+                                            <svg class="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                                            파이 차트
+                                        </button>
+                                    </div>
+                                </div>
                                 <span x-show="uploading" class="text-sm text-neutral-500 ml-2">업로드 중...</span>
                             </div>
                             {{-- Textarea --}}
@@ -250,7 +290,7 @@
                                     <span class="text-sm text-primary-600" x-text="'#' + tag"></span>
                                 </template>
                             </div>
-                            <div class="whitespace-pre-wrap" x-text="content || '내용을 입력하세요...'"></div>
+                            <div x-ref="previewContent" x-html="renderPreview()" x-effect="if (showPreview) { $nextTick(() => window.mermaid?.render($refs.previewContent)) }"></div>
                         </div>
                     </div>
                 </div>
@@ -276,6 +316,7 @@
                 tagInput: '',
                 showPreview: false,
                 showDeleteModal: false,
+                showMermaidDropdown: false,
                 isAuthenticated: false,
                 loading: true,
                 loadError: null,
@@ -284,6 +325,50 @@
                 uploading: false,
                 error: null,
                 success: null,
+
+                // Mermaid 템플릿
+                mermaidTemplates: {
+                    flowchart: `flowchart TD
+    A[시작] --> B{조건}
+    B -->|Yes| C[작업 1]
+    B -->|No| D[작업 2]
+    C --> E[종료]
+    D --> E`,
+                    sequence: `sequenceDiagram
+    participant User
+    participant Server
+    User->>Server: 요청
+    Server-->>User: 응답`,
+                    class: `classDiagram
+    class Animal {
+        +String name
+        +makeSound()
+    }
+    class Dog {
+        +bark()
+    }
+    Animal <|-- Dog`,
+                    state: `stateDiagram-v2
+    [*] --> 대기
+    대기 --> 처리중: 시작
+    처리중 --> 완료: 성공
+    처리중 --> 오류: 실패
+    완료 --> [*]
+    오류 --> 대기: 재시도`,
+                    er: `erDiagram
+    USER ||--o{ POST : writes
+    POST ||--o{ COMMENT : has`,
+                    gantt: `gantt
+    title 프로젝트 일정
+    dateFormat YYYY-MM-DD
+    section 개발
+    기능 A: 2024-01-01, 5d
+    기능 B: 2024-01-06, 3d`,
+                    pie: `pie title 비율
+    "A" : 40
+    "B" : 30
+    "C" : 30`
+                },
 
                 async init() {
                     this.isAuthenticated = window.auth?.isAuthenticated() ?? false;
@@ -373,6 +458,88 @@
                     if (url) {
                         this.insertMarkdown('[', `](${url})`);
                     }
+                },
+
+                insertMermaid(type) {
+                    const template = this.mermaidTemplates[type] || this.mermaidTemplates.flowchart;
+                    const mermaidBlock = '```mermaid\n' + template + '\n```';
+
+                    const textarea = this.$refs.contentEditor;
+                    const start = textarea.selectionStart;
+                    const text = this.content;
+
+                    // 앞뒤에 빈 줄 추가
+                    const before = start > 0 && text[start - 1] !== '\n' ? '\n\n' : (start > 0 ? '\n' : '');
+                    const after = '\n\n';
+
+                    this.content = text.substring(0, start) + before + mermaidBlock + after + text.substring(start);
+
+                    this.showMermaidDropdown = false;
+
+                    this.$nextTick(() => {
+                        textarea.focus();
+                        const newPos = start + before.length + mermaidBlock.length + after.length;
+                        textarea.setSelectionRange(newPos, newPos);
+                    });
+                },
+
+                renderPreview() {
+                    if (!this.content) {
+                        return '<p class="text-neutral-400">내용을 입력하세요...</p>';
+                    }
+
+                    // 간단한 마크다운 → HTML 변환 (클라이언트 사이드)
+                    let html = this.content;
+
+                    // Mermaid 코드 블록 처리
+                    html = html.replace(/```mermaid\n([\s\S]*?)```/g, (match, code) => {
+                        return `<pre class="mermaid">${this.escapeHtml(code.trim())}</pre>`;
+                    });
+
+                    // 일반 코드 블록
+                    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                        return `<pre><code class="language-${lang || ''}">${this.escapeHtml(code.trim())}</code></pre>`;
+                    });
+
+                    // 인라인 코드
+                    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+                    // 제목
+                    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+                    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+                    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+                    // 굵게, 기울임
+                    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+                    // 링크
+                    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 hover:underline">$1</a>');
+
+                    // 이미지
+                    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full rounded">');
+
+                    // 인용
+                    html = html.replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-neutral-300 pl-4 italic text-neutral-600">$1</blockquote>');
+
+                    // 리스트
+                    html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+                    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul class="list-disc pl-6">$&</ul>');
+
+                    // 번호 리스트
+                    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+                    // 줄바꿈
+                    html = html.replace(/\n\n/g, '</p><p>');
+                    html = '<p>' + html + '</p>';
+
+                    return html;
+                },
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
                 },
 
                 async uploadImage(event) {

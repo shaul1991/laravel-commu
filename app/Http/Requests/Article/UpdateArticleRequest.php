@@ -22,8 +22,10 @@ final class UpdateArticleRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:200'],
             'content' => ['required', 'string', 'max:100000'],
-            'category' => ['required', 'string', Rule::in($categories)],
+            'category' => ['nullable', 'string', Rule::in($categories)],
             'is_draft' => ['sometimes', 'boolean'],
+            'tags' => ['sometimes', 'array'],
+            'tags.*' => ['string', 'max:50'],
         ];
     }
 
@@ -34,8 +36,8 @@ final class UpdateArticleRequest extends FormRequest
             'title.max' => '제목은 최대 200자까지 입력할 수 있습니다.',
             'content.required' => '본문은 필수입니다.',
             'content.max' => '본문은 최대 100,000자까지 입력할 수 있습니다.',
-            'category.required' => '카테고리는 필수입니다.',
             'category.in' => '유효하지 않은 카테고리입니다.',
+            'tags.*.max' => '태그는 최대 50자까지 입력할 수 있습니다.',
         ];
     }
 }

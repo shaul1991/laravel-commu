@@ -10,6 +10,7 @@ use App\Application\Article\DeleteArticleUseCase;
 use App\Application\Article\LikeArticleUseCase;
 use App\Application\Article\UpdateArticleInput;
 use App\Application\Article\UpdateArticleUseCase;
+use App\Application\Tag\SyncArticleTagsService;
 use App\Domain\Core\Article\Exceptions\ArticleNotEditableException;
 use App\Domain\Core\Article\ValueObjects\Category;
 use App\Exceptions\Http\ForbiddenException;
@@ -18,9 +19,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Article\CreateArticleRequest;
 use App\Http\Requests\Article\UpdateArticleRequest;
 use App\Infrastructure\Persistence\Eloquent\ArticleModel;
+use App\Infrastructure\Persistence\Eloquent\TagModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 final class ArticleController extends Controller
 {
@@ -28,7 +31,8 @@ final class ArticleController extends Controller
         private readonly CreateArticleUseCase $createArticleUseCase,
         private readonly UpdateArticleUseCase $updateArticleUseCase,
         private readonly DeleteArticleUseCase $deleteArticleUseCase,
-        private readonly LikeArticleUseCase $likeArticleUseCase
+        private readonly LikeArticleUseCase $likeArticleUseCase,
+        private readonly SyncArticleTagsService $syncArticleTagsService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -64,7 +68,7 @@ final class ArticleController extends Controller
 
     public function show(Request $request, string $slug): JsonResponse
     {
-        $article = ArticleModel::where('slug', $slug)->with('author')->first();
+        $article = ArticleModel::where('slug', $slug)->with(['author', 'tags'])->first();
 
         if (! $article) {
             throw new NotFoundException('Article not found');
@@ -88,8 +92,11 @@ final class ArticleController extends Controller
             }
         }
 
+        // Check if current user has liked this article
+        $isLiked = $currentUser ? $article->isLikedBy($currentUser->id) : false;
+
         return response()->json([
-            'data' => $this->formatDetail($article, $isAuthor),
+            'data' => $this->formatDetail($article, $isAuthor, $isLiked),
         ]);
     }
 
@@ -151,8 +158,16 @@ final class ArticleController extends Controller
 
         // Load the created article with author
         $articleModel = ArticleModel::where('uuid', $article->id()->value())
-            ->with('author')
+            ->with(['author', 'tags'])
             ->firstOrFail();
+
+        // Handle tags
+        $tags = $request->validated('tags', []);
+        if (! empty($tags)) {
+            $this->syncArticleTagsService->sync($articleModel, $tags);
+            $articleModel->refresh();
+            $articleModel->load('tags');
+        }
 
         return response()->json([
             'data' => $this->formatDetail($articleModel),
@@ -177,8 +192,16 @@ final class ArticleController extends Controller
             $article = $this->updateArticleUseCase->execute($input);
 
             $articleModel = ArticleModel::where('uuid', $article->id()->value())
-                ->with('author')
+                ->with(['author', 'tags'])
                 ->firstOrFail();
+
+            // Handle tags
+            $tags = $request->validated('tags');
+            if ($tags !== null) {
+                $this->syncArticleTagsService->sync($articleModel, $tags);
+                $articleModel->refresh();
+                $articleModel->load('tags');
+            }
 
             return response()->json([
                 'data' => $this->formatDetail($articleModel),
@@ -198,7 +221,20 @@ final class ArticleController extends Controller
         /** @var UserModel $user */
         $user = $request->user();
 
-        $this->deleteArticleUseCase->execute($user->uuid, $slug);
+        DB::transaction(function () use ($user, $slug) {
+            // Delete the article first
+            $this->deleteArticleUseCase->execute($user->uuid, $slug);
+
+            // Decrement tag article counts after successful deletion
+            $articleModel = ArticleModel::withTrashed()
+                ->where('slug', $slug)
+                ->with('tags')
+                ->first();
+
+            if ($articleModel) {
+                $this->syncArticleTagsService->decrementCountsForArticle($articleModel);
+            }
+        });
 
         return response()->json([
             'message' => 'Article deleted successfully',
@@ -296,7 +332,7 @@ final class ArticleController extends Controller
         ];
     }
 
-    private function formatDetail(ArticleModel $article, bool $isAuthor = false): array
+    private function formatDetail(ArticleModel $article, bool $isAuthor = false, bool $isLiked = false): array
     {
         return [
             'id' => $article->uuid,
@@ -308,9 +344,15 @@ final class ArticleController extends Controller
             'status' => $article->status,
             'view_count' => $article->view_count,
             'like_count' => $article->like_count,
+            'is_liked' => $isLiked,
             'reading_time' => $this->calculateReadingTime($article->content_html),
             'author' => $this->formatAuthor($article->author),
             'is_author' => $isAuthor,
+            'tags' => $article->tags->map(fn (TagModel $tag) => [
+                'id' => $tag->uuid,
+                'name' => $tag->name,
+                'slug' => $tag->slug,
+            ])->values()->toArray(),
             'published_at' => $article->published_at?->toIso8601String(),
             'created_at' => $article->created_at->toIso8601String(),
             'updated_at' => $article->updated_at->toIso8601String(),

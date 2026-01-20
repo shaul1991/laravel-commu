@@ -1,59 +1,264 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Blogs
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 기반의 커뮤니티 블로그 플랫폼입니다.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Category | Technology |
+|----------|------------|
+| **Backend** | PHP 8.4, Laravel 12 |
+| **Frontend** | Blade, Tailwind CSS 4, Vite 7 |
+| **Database** | PostgreSQL, MongoDB |
+| **Cache/Queue** | Redis |
+| **Storage** | MinIO (S3 Compatible) |
+| **Authentication** | Laravel Passport (OAuth2) |
+| **Testing** | Pest, Playwright |
+| **Monitoring** | Sentry |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Domain-Driven Design (DDD)
 
-## Learning Laravel
+프로젝트는 DDD 패턴을 따르며, 다음과 같은 레이어로 구성됩니다:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```
+app/
+├── Application/           # Use Cases (비즈니스 로직 조합)
+│   └── Article/
+├── Domain/                # 핵심 비즈니스 로직
+│   ├── Core/              # 도메인 엔티티 및 Value Objects
+│   │   ├── Article/
+│   │   ├── Comment/
+│   │   ├── User/
+│   │   ├── Tag/
+│   │   ├── Notification/
+│   │   └── Shared/
+│   └── Aggregator/        # 크로스 도메인 서비스
+│       ├── ArticleFeed/
+│       ├── SocialGraph/
+│       └── Search/
+├── Infrastructure/        # 인프라 구현체
+│   ├── Persistence/       # Eloquent 리포지토리
+│   └── Services/          # 외부 서비스 구현
+├── Http/                  # 컨트롤러 및 Request
+│   ├── Controllers/
+│   └── Requests/
+└── Providers/             # 서비스 프로바이더
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Database
 
-## Laravel Sponsors
+- **Soft Reference 정책**: Foreign Key 제약조건을 사용하지 않고 약한 결합으로 테이블 관계 구성
+- **SoftDeletes 필수**: 모든 테이블에 SoftDeletes 적용 (pivot/log 테이블 제외)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Features
 
-### Premium Partners
+### Authentication
+- OAuth2 소셜 로그인 (Google, GitHub 등)
+- Laravel Passport 기반 API 토큰 인증
+- 세션 관리 (다중 세션 조회/해제)
+- 소셜 계정 연동/해제
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Article
+- Markdown 에디터
+- 임시 저장 (Draft)
+- 발행/보관 상태 관리
+- 카테고리 및 태그
+- 조회수/좋아요
+- 이미지 업로드 (MinIO S3)
 
-## Contributing
+### Social
+- 사용자 팔로우/언팔로우
+- 댓글 및 대댓글
+- 댓글 좋아요
+- 알림 시스템
+- 사용자 프로필
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Search
+- 아티클 검색
+- 사용자 검색
 
-## Code of Conduct
+## Getting Started
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Requirements
 
-## Security Vulnerabilities
+- PHP 8.4+
+- Composer 2.x
+- Node.js 20+
+- Docker & Docker Compose
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Local Development
+
+```bash
+# 1. 저장소 클론
+git clone <repository-url>
+cd blogs
+
+# 2. 프로젝트 초기 설정
+composer setup
+
+# 3. Docker 컨테이너 시작
+make up
+
+# 4. Passport OAuth 초기화
+make passport-init
+
+# 5. 개발 환경 실행 (서버 + 큐 + 로그 + Vite)
+composer dev
+```
+
+### Docker Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Nginx | 80 | 웹서버 |
+| WAS | 9002 | PHP-FPM |
+| PostgreSQL | 5432 | 메인 데이터베이스 |
+| Redis | 6379 | 캐시/큐 |
+| MongoDB | 27017 | NoSQL 데이터베이스 |
+| MinIO | 9000, 9001 | S3 호환 스토리지 |
+
+## Development
+
+### Commands
+
+```bash
+# 개발 환경 실행 (서버, 큐, 로그, Vite 동시 실행)
+composer dev
+
+# 테스트 실행
+composer test
+
+# 단일 테스트 파일 실행
+php artisan test tests/Feature/ExampleTest.php
+
+# 단일 테스트 메서드 실행
+php artisan test --filter test_method_name
+
+# 코드 스타일 정리
+./vendor/bin/pint
+
+# 마이그레이션
+php artisan migrate
+
+# 프론트엔드 빌드
+npm run build
+```
+
+### Makefile
+
+```bash
+make help          # 사용 가능한 명령어 확인
+
+# Docker
+make up            # 컨테이너 시작
+make down          # 컨테이너 중지
+make logs          # 로그 확인
+make sh            # WAS 컨테이너 접속
+make migrate       # 마이그레이션
+make test          # 테스트
+make pint          # 코드 스타일
+
+# Xdebug
+make xdebug-off      # 비활성화
+make xdebug-debug    # IDE 스텝 디버깅
+make xdebug-develop  # 향상된 에러 출력
+make xdebug-coverage # 코드 커버리지
+```
+
+### Git Hooks
+
+```bash
+# Git hooks 설치
+composer hooks:install
+```
+
+**pre-push**: Ollama가 실행 중일 때 push 전 로컬 CI 검사 수행
+- 코드 스타일 (Pint)
+- 단위 테스트
+- 아키텍처 테스트
+
+## API Endpoints
+
+### Public Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/articles` | 아티클 목록 |
+| GET | `/api/articles/{slug}` | 아티클 상세 |
+| GET | `/api/articles/{slug}/comments` | 댓글 목록 |
+| GET | `/api/search/articles` | 아티클 검색 |
+| GET | `/api/search/users` | 사용자 검색 |
+| GET | `/api/users/{username}` | 사용자 프로필 |
+| GET | `/api/users/{username}/articles` | 사용자 아티클 |
+
+### Auth Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/auth/oauth/{provider}/redirect` | OAuth 로그인 리다이렉트 |
+| GET | `/api/auth/oauth/{provider}/callback` | OAuth 콜백 |
+| POST | `/api/auth/refresh` | 토큰 갱신 |
+
+### Protected Routes (인증 필요)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/logout` | 로그아웃 |
+| GET | `/api/auth/me` | 내 정보 |
+| GET | `/api/auth/sessions` | 세션 목록 |
+| DELETE | `/api/auth/sessions/{id}` | 세션 해제 |
+| GET | `/api/articles/drafts` | 내 임시글 |
+| POST | `/api/articles` | 아티클 생성 |
+| PUT | `/api/articles/{slug}` | 아티클 수정 |
+| DELETE | `/api/articles/{slug}` | 아티클 삭제 |
+| POST | `/api/articles/{slug}/like` | 좋아요 |
+| POST | `/api/articles/{slug}/publish` | 발행 |
+| POST | `/api/images/upload` | 이미지 업로드 |
+| POST | `/api/articles/{slug}/comments` | 댓글 작성 |
+| POST | `/api/comments/{comment}/replies` | 대댓글 작성 |
+| PUT | `/api/comments/{comment}` | 댓글 수정 |
+| DELETE | `/api/comments/{comment}` | 댓글 삭제 |
+| POST | `/api/comments/{comment}/like` | 댓글 좋아요 |
+| PUT | `/api/users/me` | 프로필 수정 |
+| POST | `/api/users/{username}/follow` | 팔로우 |
+| GET | `/api/notifications` | 알림 목록 |
+| GET | `/api/notifications/unread-count` | 읽지 않은 알림 수 |
+| POST | `/api/notifications/read-all` | 전체 읽음 처리 |
+
+## Project Structure
+
+```
+.
+├── app/                    # 애플리케이션 코드
+├── bootstrap/              # 프레임워크 부트스트랩
+├── config/                 # 설정 파일
+├── database/               # 마이그레이션 및 시더
+├── docker/                 # Docker 설정
+│   ├── docker-compose.yml
+│   ├── nginx/
+│   └── was/
+├── public/                 # 웹 루트
+├── resources/              # 뷰, CSS, JS
+│   ├── css/
+│   ├── js/
+│   └── views/
+├── routes/                 # 라우트 정의
+│   ├── api.php
+│   ├── web.php
+│   └── console.php
+├── scripts/                # 스크립트
+├── storage/                # 스토리지
+├── tests/                  # 테스트
+├── .claude/                # Claude Code 설정
+│   ├── agents/             # 에이전트 컨텍스트
+│   └── commands/           # 스킬 명령어
+├── CLAUDE.md               # Claude Code 지침
+├── Makefile                # Make 명령어
+├── composer.json           # PHP 의존성
+└── package.json            # Node.js 의존성
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is proprietary software.

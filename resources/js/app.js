@@ -1,5 +1,6 @@
 import './bootstrap';
 import './auth';
+import './mermaid';
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
