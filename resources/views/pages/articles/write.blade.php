@@ -71,18 +71,6 @@
                 {{-- Editor --}}
                 <div class="card" x-show="!showPreview">
                     <div class="p-6 space-y-6">
-                        {{-- Category --}}
-                        <div>
-                            <label for="category" class="block text-sm font-medium text-neutral-700 mb-1.5">카테고리 <span class="text-red-500">*</span></label>
-                            <select id="category" x-model="category" class="input max-w-xs">
-                                <option value="">카테고리 선택</option>
-                                <option value="tech">기술</option>
-                                <option value="career">커리어</option>
-                                <option value="life">일상</option>
-                                <option value="news">뉴스</option>
-                            </select>
-                        </div>
-
                         {{-- Title --}}
                         <div>
                             <input
@@ -91,33 +79,6 @@
                                 placeholder="제목을 입력하세요 *"
                                 class="w-full text-3xl font-bold border-0 border-b border-neutral-200 pb-4 focus:border-primary-500 focus:ring-0 placeholder-neutral-400"
                             >
-                        </div>
-
-                        {{-- Tags --}}
-                        <div>
-                            <label class="block text-sm font-medium text-neutral-700 mb-1.5">태그 (최대 5개)</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <template x-for="tag in tags" :key="tag">
-                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-sm">
-                                        <span x-text="tag"></span>
-                                        <button type="button" @click="removeTag(tag)" class="hover:text-primary-900">
-                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
-                                    </span>
-                                </template>
-                            </div>
-                            <div class="flex gap-2" x-show="tags.length < 5">
-                                <input
-                                    type="text"
-                                    x-model="tagInput"
-                                    @keydown.enter.prevent="addTag()"
-                                    placeholder="태그 입력 후 Enter"
-                                    class="input flex-1 max-w-xs"
-                                >
-                                <button type="button" @click="addTag()" class="btn-outline">추가</button>
-                            </div>
                         </div>
 
                         {{-- Content Editor --}}
@@ -183,6 +144,86 @@
                                 class="w-full border border-neutral-200 rounded-b-lg p-4 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none font-mono text-sm"
                             ></textarea>
                         </div>
+
+                        {{-- Tags with Autocomplete --}}
+                        <div class="relative">
+                            <label class="block text-sm font-medium text-neutral-700 mb-1.5">태그</label>
+                            {{-- Tag Input --}}
+                            <div class="relative">
+                                <input
+                                    type="text"
+                                    x-model="tagInput"
+                                    @input.debounce.300ms="searchTags()"
+                                    @keydown.enter.prevent="addTagFromInput()"
+                                    @keydown.arrow-down.prevent="navigateSuggestion(1)"
+                                    @keydown.arrow-up.prevent="navigateSuggestion(-1)"
+                                    @keydown.escape="closeSuggestions()"
+                                    @focus="tagInput.length >= 1 && searchTags()"
+                                    @blur.debounce.200ms="closeSuggestions()"
+                                    placeholder="태그를 입력하세요 (Enter로 추가)"
+                                    class="input w-full max-w-md"
+                                >
+                                {{-- Autocomplete Dropdown --}}
+                                <div
+                                    x-show="showTagSuggestions && tagSuggestions.length > 0"
+                                    x-cloak
+                                    class="absolute top-full left-0 right-0 max-w-md mt-1 rounded-lg border border-neutral-200 bg-white shadow-lg max-h-48 overflow-y-auto z-50"
+                                >
+                                    <template x-for="(suggestion, index) in tagSuggestions" :key="suggestion.id">
+                                        <button
+                                            type="button"
+                                            @mousedown.prevent="selectTagSuggestion(suggestion)"
+                                            :class="{'bg-primary-50': selectedSuggestionIndex === index}"
+                                            class="w-full px-3 py-2 text-left text-sm hover:bg-neutral-100 flex items-center justify-between"
+                                        >
+                                            <span>
+                                                <span class="text-neutral-400">#</span>
+                                                <span x-text="suggestion.name"></span>
+                                            </span>
+                                            <span class="text-xs text-neutral-400" x-text="suggestion.article_count + '개의 글'"></span>
+                                        </button>
+                                    </template>
+                                    {{-- Create new tag option --}}
+                                    <button
+                                        type="button"
+                                        x-show="tagInput.trim() && !tagSuggestions.find(s => s.name.toLowerCase() === tagInput.trim().toLowerCase())"
+                                        @mousedown.prevent="addTagFromInput()"
+                                        :class="{'bg-primary-50': selectedSuggestionIndex === tagSuggestions.length}"
+                                        class="w-full px-3 py-2 text-left text-sm hover:bg-neutral-100 border-t border-neutral-100"
+                                    >
+                                        <span class="text-primary-600">+ 새 태그 "</span>
+                                        <span class="font-medium text-primary-700" x-text="tagInput.trim()"></span>
+                                        <span class="text-primary-600">" 만들기</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {{-- Selected Tags --}}
+                            <div class="flex flex-wrap gap-2 mt-2" x-show="tags.length > 0">
+                                <template x-for="tag in tags" :key="tag">
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-sm">
+                                        <span class="text-primary-400">#</span>
+                                        <span x-text="tag"></span>
+                                        <button type="button" @click="removeTag(tag)" class="hover:text-primary-900">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- Category --}}
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-neutral-700 mb-1.5">카테고리 <span class="text-red-500">*</span></label>
+                            <select id="category" x-model="category" class="input max-w-xs">
+                                <option value="">카테고리 선택</option>
+                                <option value="tech">기술</option>
+                                <option value="career">커리어</option>
+                                <option value="life">일상</option>
+                                <option value="news">뉴스</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -213,6 +254,10 @@
                 category: '',
                 tags: [],
                 tagInput: '',
+                tagSuggestions: [],
+                showTagSuggestions: false,
+                selectedSuggestionIndex: -1,
+                searchingTags: false,
                 showPreview: false,
                 isAuthenticated: false,
                 saving: false,
@@ -230,11 +275,76 @@
                     return this.title.trim() && this.content.trim() && this.category;
                 },
 
-                addTag() {
-                    if (this.tagInput.trim() && this.tags.length < 5 && !this.tags.includes(this.tagInput.trim())) {
-                        this.tags.push(this.tagInput.trim());
-                        this.tagInput = '';
+                async searchTags() {
+                    const query = this.tagInput.trim();
+                    if (query.length < 1) {
+                        this.tagSuggestions = [];
+                        this.showTagSuggestions = false;
+                        return;
                     }
+
+                    this.searchingTags = true;
+                    try {
+                        const response = await fetch(`/api/tags/search?q=${encodeURIComponent(query)}&limit=5`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.tagSuggestions = data.data.filter(tag =>
+                                !this.tags.includes(tag.name)
+                            );
+                            this.showTagSuggestions = true;
+                            this.selectedSuggestionIndex = -1;
+                        }
+                    } catch (err) {
+                        console.error('Tag search failed:', err);
+                    } finally {
+                        this.searchingTags = false;
+                    }
+                },
+
+                selectTagSuggestion(suggestion) {
+                    if (!this.tags.includes(suggestion.name)) {
+                        this.tags.push(suggestion.name);
+                    }
+                    this.tagInput = '';
+                    this.tagSuggestions = [];
+                    this.showTagSuggestions = false;
+                    this.selectedSuggestionIndex = -1;
+                },
+
+                addTagFromInput() {
+                    // If a suggestion is selected, use it
+                    if (this.selectedSuggestionIndex >= 0 && this.selectedSuggestionIndex < this.tagSuggestions.length) {
+                        this.selectTagSuggestion(this.tagSuggestions[this.selectedSuggestionIndex]);
+                        return;
+                    }
+
+                    // Otherwise, add the input as a new tag
+                    const tagName = this.tagInput.trim();
+                    if (tagName && !this.tags.includes(tagName)) {
+                        this.tags.push(tagName);
+                    }
+                    this.tagInput = '';
+                    this.tagSuggestions = [];
+                    this.showTagSuggestions = false;
+                    this.selectedSuggestionIndex = -1;
+                },
+
+                navigateSuggestion(direction) {
+                    if (!this.showTagSuggestions) return;
+
+                    const maxIndex = this.tagSuggestions.length; // Include "create new" option
+                    this.selectedSuggestionIndex += direction;
+
+                    if (this.selectedSuggestionIndex < -1) {
+                        this.selectedSuggestionIndex = maxIndex - 1;
+                    } else if (this.selectedSuggestionIndex >= maxIndex) {
+                        this.selectedSuggestionIndex = -1;
+                    }
+                },
+
+                closeSuggestions() {
+                    this.showTagSuggestions = false;
+                    this.selectedSuggestionIndex = -1;
                 },
 
                 removeTag(tag) {
@@ -316,9 +426,9 @@
                             body: JSON.stringify({
                                 title: this.title,
                                 content: this.content,
-                                category: this.category || '기술',
+                                category: this.category || 'tech',
                                 tags: this.tags,
-                                status: 'draft'
+                                is_draft: true
                             })
                         });
 
@@ -361,7 +471,7 @@
                                 content: this.content,
                                 category: this.category,
                                 tags: this.tags,
-                                status: 'published'
+                                is_draft: false
                             })
                         });
 

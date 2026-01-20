@@ -64,6 +64,16 @@ class ArticleModel extends Model
         )->withTimestamps();
     }
 
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            TagModel::class,
+            'article_tags',
+            'article_id',
+            'tag_id'
+        )->withTimestamps();
+    }
+
     public function isLikedBy(?int $userId): bool
     {
         if ($userId === null) {

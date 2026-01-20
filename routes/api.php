@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\OAuthController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SocialAccountController;
+use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,13 @@ Route::get('/search/users', [SearchController::class, 'users']);
 // User Routes (Public)
 Route::get('/users/{username}', [UserController::class, 'show']);
 Route::get('/users/{username}/articles', [UserController::class, 'articles']);
+
+// Tag Routes (Public)
+Route::get('/tags', [TagController::class, 'index']);
+Route::get('/tags/popular', [TagController::class, 'popular']);
+Route::get('/tags/search', [TagController::class, 'search']);
+Route::get('/tags/{slug}', [TagController::class, 'show']);
+Route::get('/tags/{slug}/articles', [TagController::class, 'articles']);
 
 // Auth Routes (Protected) - Passport API Guard
 Route::middleware('auth:api')->group(function () {
