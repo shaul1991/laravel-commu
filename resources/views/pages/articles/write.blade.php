@@ -85,7 +85,6 @@
 
                             {{-- Content Editor --}}
                             <div>
-                                <label class="block text-sm font-medium text-neutral-700 mb-1.5">본문</label>
                                 {{-- Toolbar --}}
                                 <div class="flex items-center gap-1 p-2 border border-b-0 border-neutral-200 rounded-t-lg bg-neutral-50">
                                     <button type="button" class="p-2 rounded hover:bg-neutral-200" title="굵게" @click="insertMarkdown('**', '**')">
@@ -208,7 +207,7 @@
                                             type="text"
                                             x-model="tagInput"
                                             @input.debounce.300ms="searchTags()"
-                                            @keydown.enter.prevent="addTagFromInput()"
+                                            @keydown.enter.prevent="if(!$event.isComposing) addTagFromInput()"
                                             @keydown.arrow-down.prevent="navigateSuggestion(1)"
                                             @keydown.arrow-up.prevent="navigateSuggestion(-1)"
                                             @keydown.escape="closeSuggestions()"
