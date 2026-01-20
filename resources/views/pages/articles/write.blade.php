@@ -151,10 +151,42 @@
 
                     {{-- Optional Fields Section --}}
                     <div class="card bg-neutral-50/50">
-                        <div class="p-6 space-y-5">
-                            <h3 class="text-sm font-medium text-neutral-500 uppercase tracking-wide">추가 설정 (선택사항)</h3>
+                        {{-- Toggle Header --}}
+                        <button
+                            type="button"
+                            @click="showOptionalFields = !showOptionalFields"
+                            class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-neutral-100/50 transition-colors rounded-t-lg"
+                        >
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-medium text-neutral-500 uppercase tracking-wide">추가 설정 (선택사항)</h3>
+                                <span x-show="category || tags.length > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                                    <span x-text="(category ? 1 : 0) + tags.length"></span>개 설정됨
+                                </span>
+                            </div>
+                            <svg
+                                class="h-5 w-5 text-neutral-400 transition-transform duration-200"
+                                :class="{'rotate-180': showOptionalFields}"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {{-- Collapsible Content --}}
+                        <div
+                            x-show="showOptionalFields"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 -translate-y-2"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-2"
+                            x-cloak
+                        >
+                            <div class="px-6 pb-6 pt-2 space-y-5 border-t border-neutral-200/50">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {{-- Category --}}
                                 <div>
                                     <label for="category" class="block text-sm font-medium text-neutral-700 mb-1.5">카테고리</label>
@@ -234,6 +266,7 @@
                                         </template>
                                     </div>
                                 </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -271,6 +304,7 @@
                 selectedSuggestionIndex: -1,
                 searchingTags: false,
                 showPreview: false,
+                showOptionalFields: false,
                 isAuthenticated: false,
                 saving: false,
                 savingDraft: false,
