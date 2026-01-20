@@ -88,8 +88,11 @@ final class ArticleController extends Controller
             }
         }
 
+        // Check if current user has liked this article
+        $isLiked = $currentUser ? $article->isLikedBy($currentUser->id) : false;
+
         return response()->json([
-            'data' => $this->formatDetail($article, $isAuthor),
+            'data' => $this->formatDetail($article, $isAuthor, $isLiked),
         ]);
     }
 
@@ -296,7 +299,7 @@ final class ArticleController extends Controller
         ];
     }
 
-    private function formatDetail(ArticleModel $article, bool $isAuthor = false): array
+    private function formatDetail(ArticleModel $article, bool $isAuthor = false, bool $isLiked = false): array
     {
         return [
             'id' => $article->uuid,
@@ -308,6 +311,7 @@ final class ArticleController extends Controller
             'status' => $article->status,
             'view_count' => $article->view_count,
             'like_count' => $article->like_count,
+            'is_liked' => $isLiked,
             'reading_time' => $this->calculateReadingTime($article->content_html),
             'author' => $this->formatAuthor($article->author),
             'is_author' => $isAuthor,
