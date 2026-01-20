@@ -149,12 +149,7 @@
                             @click="showOptionalFields = !showOptionalFields"
                             class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-neutral-100/50 transition-colors rounded-t-lg"
                         >
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-medium text-neutral-500 uppercase tracking-wide">추가 설정 (선택사항)</h3>
-                                <span x-show="category || tags.length > 0" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
-                                    <span x-text="(category ? 1 : 0) + tags.length"></span>개 설정됨
-                                </span>
-                            </div>
+                            <h3 class="text-sm font-medium text-neutral-500 uppercase tracking-wide">추가 설정 (선택사항)</h3>
                             <svg
                                 class="h-5 w-5 text-neutral-400 transition-transform duration-200"
                                 :class="{'rotate-180': showOptionalFields}"
