@@ -32,7 +32,9 @@ final class CreateArticleUseCase
         // Generate unique slug
         $slug = $this->generateUniqueSlug($input->title);
 
-        $category = Category::from($input->category);
+        $category = $input->category !== null
+            ? Category::from($input->category)
+            : Category::default();
 
         $article = Article::create(
             id: $articleId,

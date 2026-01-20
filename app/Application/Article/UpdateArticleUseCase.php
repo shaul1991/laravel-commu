@@ -41,7 +41,9 @@ final class UpdateArticleUseCase
         // Generate new slug if title changed
         $newSlug = Slug::fromTitle($input->title)->withTimestamp();
 
-        $category = Category::from($input->category);
+        $category = $input->category !== null
+            ? Category::from($input->category)
+            : Category::default();
 
         $article->update(
             title: $input->title,

@@ -1115,6 +1115,227 @@ Authorization: Bearer {token}
 
 ---
 
+## 7. Tags API
+
+### 7.1 태그 목록 조회
+```
+GET /api/tags
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | int | 1 | 페이지 번호 |
+| per_page | int | 20 | 페이지당 항목 수 (max: 50) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Laravel",
+      "slug": "laravel",
+      "article_count": 45
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "PHP",
+      "slug": "php",
+      "article_count": 38
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 20,
+    "total": 100
+  }
+}
+```
+
+---
+
+### 7.2 인기 태그 조회
+```
+GET /api/tags/popular
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| limit | int | 10 | 반환할 태그 수 (max: 50) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Laravel",
+      "slug": "laravel",
+      "article_count": 45
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "PHP",
+      "slug": "php",
+      "article_count": 38
+    }
+  ]
+}
+```
+
+---
+
+### 7.3 태그 검색 (자동완성)
+```
+GET /api/tags/search
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| q | string | required | 검색어 |
+| limit | int | 10 | 반환할 태그 수 (max: 50) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Laravel",
+      "slug": "laravel",
+      "article_count": 45
+    }
+  ]
+}
+```
+
+---
+
+### 7.4 태그 상세 조회
+```
+GET /api/tags/{slug}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Laravel",
+    "slug": "laravel",
+    "article_count": 45,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "태그를 찾을 수 없습니다."
+  }
+}
+```
+
+---
+
+### 7.5 태그별 아티클 목록
+```
+GET /api/tags/{slug}/articles
+```
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | int | 1 | 페이지 번호 |
+| per_page | int | 20 | 페이지당 항목 수 (max: 50) |
+| sort | string | latest | 정렬 (latest, popular) |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "tag": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Laravel",
+      "slug": "laravel",
+      "article_count": 45
+    },
+    "articles": [
+      {
+        "id": 1,
+        "title": "Laravel 12에서 새롭게 바뀐 기능들",
+        "slug": "laravel-12-new-features",
+        "excerpt": "Laravel 12가 출시되면서...",
+        "thumbnail_url": "https://...",
+        "category": "tech",
+        "tags": ["Laravel", "PHP"],
+        "author": {
+          "id": 1,
+          "name": "김개발",
+          "username": "devkim",
+          "avatar_url": "https://..."
+        },
+        "views_count": 1234,
+        "comments_count": 23,
+        "likes_count": 56,
+        "published_at": "2024-01-15T10:00:00Z"
+      }
+    ]
+  },
+  "meta": {
+    "current_page": 1,
+    "per_page": 20,
+    "total": 45,
+    "last_page": 3
+  }
+}
+```
+
+---
+
+### 7.6 아티클 태그 연동
+
+아티클 생성/수정 시 태그를 함께 지정할 수 있습니다.
+
+**아티클 생성 시 태그 추가:**
+```
+POST /api/articles
+Authorization: Bearer {token}
+```
+
+**Request Body:**
+```json
+{
+  "title": "새로운 아티클",
+  "content": "내용...",
+  "category": "tech",
+  "tags": ["Laravel", "PHP", "Backend"]
+}
+```
+
+**Validation Rules:**
+- `tags`: array (선택)
+- `tags.*`: string, max:50
+
+**동작:**
+- 존재하지 않는 태그는 자동으로 생성됨
+- 기존 태그는 `article_count`가 증가함
+- 태그 이름은 대소문자 구분 없이 중복 체크됨
+
+---
+
 ## Rate Limiting
 
 | Endpoint | Limit |
