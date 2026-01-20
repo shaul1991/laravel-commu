@@ -55,8 +55,9 @@ final class EloquentTagRepository implements TagRepositoryInterface
     {
         $uuids = array_map(fn (ArticleId $id) => $id->value(), $articleIds);
 
-        $articles = ArticleModel::whereIn('uuid', $uuids)->get();
-        $articleIdMap = $articles->pluck('id', 'uuid')->toArray();
+        $articles = ArticleModel::whereIn('uuid', $uuids)
+            ->with('tags')
+            ->get();
 
         $result = [];
         foreach ($articles as $article) {
@@ -108,10 +109,21 @@ final class EloquentTagRepository implements TagRepositoryInterface
             return $existingTag;
         }
 
-        $tag = Tag::create(TagId::generate(), $name);
-        $this->save($tag);
+        try {
+            $tag = Tag::create(TagId::generate(), $name);
+            $this->save($tag);
 
-        return $tag;
+            return $tag;
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle race condition: another process may have created the tag
+            if ($e->errorInfo[1] === 7 || str_contains($e->getMessage(), 'Duplicate') || str_contains($e->getMessage(), 'UNIQUE constraint')) {
+                $existingTag = $this->findByName($name);
+                if ($existingTag !== null) {
+                    return $existingTag;
+                }
+            }
+            throw $e;
+        }
     }
 
     private function toEntity(TagModel $model): Tag

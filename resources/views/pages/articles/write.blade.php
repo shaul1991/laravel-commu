@@ -356,7 +356,11 @@
                 navigateSuggestion(direction) {
                     if (!this.showTagSuggestions) return;
 
-                    const maxIndex = this.tagSuggestions.length; // Include "create new" option
+                    // Check if "create new" option is visible
+                    const hasCreateNewOption = this.tagInput.trim() &&
+                        !this.tagSuggestions.find(s => s.name.toLowerCase() === this.tagInput.trim().toLowerCase());
+                    const maxIndex = this.tagSuggestions.length + (hasCreateNewOption ? 1 : 0);
+
                     this.selectedSuggestionIndex += direction;
 
                     if (this.selectedSuggestionIndex < -1) {

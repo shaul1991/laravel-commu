@@ -344,4 +344,116 @@ final class TagApiTest extends TestCase
 
         $this->assertEquals(0, $tag->fresh()->article_count);
     }
+
+    #[Test]
+    public function duplicate_tags_are_deduplicated_on_create(): void
+    {
+        // 중복된 태그명을 보내도 한 번만 처리되어야 함
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/articles', [
+                'title' => 'Article with duplicate tags',
+                'content' => 'Content here',
+                'category' => 'tech',
+                'tags' => ['Laravel', 'laravel', 'LARAVEL', 'PHP', 'php'],
+            ]);
+
+        $response->assertStatus(201);
+
+        // 중복 제거 후 2개의 태그만 있어야 함 (Laravel, PHP)
+        $tagNames = collect($response->json('data.tags'))->pluck('name')->toArray();
+        $this->assertCount(2, $tagNames);
+
+        // article_count가 1이어야 함 (중복으로 인한 과잉 증가 방지)
+        $laravelTag = TagModel::whereRaw('LOWER(name) = ?', ['laravel'])->first();
+        $this->assertEquals(1, $laravelTag->article_count);
+    }
+
+    #[Test]
+    public function duplicate_tags_are_deduplicated_on_update(): void
+    {
+        // 아티클 생성
+        $createResponse = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/articles', [
+                'title' => 'Original Article',
+                'content' => 'Original content',
+                'category' => 'tech',
+                'tags' => ['Vue'],
+            ]);
+
+        $articleSlug = $createResponse->json('data.slug');
+
+        // 중복 태그로 업데이트
+        $updateResponse = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->putJson("/api/articles/{$articleSlug}", [
+                'title' => 'Updated Article',
+                'content' => 'Updated content',
+                'category' => 'tech',
+                'tags' => ['React', 'react', 'REACT'],
+            ]);
+
+        $updateResponse->assertStatus(200);
+
+        // 중복 제거 후 1개의 태그만 있어야 함
+        $tagNames = collect($updateResponse->json('data.tags'))->pluck('name')->toArray();
+        $this->assertCount(1, $tagNames);
+
+        // Vue 태그의 article_count는 0이어야 함 (제거됨)
+        $vueTag = TagModel::where('name', 'Vue')->first();
+        $this->assertEquals(0, $vueTag->article_count);
+
+        // React 태그의 article_count는 1이어야 함
+        $reactTag = TagModel::whereRaw('LOWER(name) = ?', ['react'])->first();
+        $this->assertEquals(1, $reactTag->article_count);
+    }
+
+    #[Test]
+    public function whitespace_around_tags_is_trimmed(): void
+    {
+        $response = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/articles', [
+                'title' => 'Article with whitespace tags',
+                'content' => 'Content here',
+                'category' => 'tech',
+                'tags' => ['  Laravel  ', 'PHP  ', '  JavaScript'],
+            ]);
+
+        $response->assertStatus(201);
+
+        // 앞뒤 공백이 제거되어야 함
+        $tagNames = collect($response->json('data.tags'))->pluck('name')->toArray();
+        $this->assertCount(3, $tagNames);
+        $this->assertContains('Laravel', $tagNames);
+        $this->assertContains('PHP', $tagNames);
+        $this->assertContains('JavaScript', $tagNames);
+    }
+
+    #[Test]
+    public function article_delete_with_multiple_tags_decrements_all_counts(): void
+    {
+        $tag1 = TagModel::create(['uuid' => fake()->uuid(), 'name' => 'Tag1', 'slug' => 'tag1', 'article_count' => 5]);
+        $tag2 = TagModel::create(['uuid' => fake()->uuid(), 'name' => 'Tag2', 'slug' => 'tag2', 'article_count' => 3]);
+        $tag3 = TagModel::create(['uuid' => fake()->uuid(), 'name' => 'Tag3', 'slug' => 'tag3', 'article_count' => 1]);
+
+        $article = ArticleModel::create([
+            'uuid' => fake()->uuid(),
+            'author_id' => $this->user->id,
+            'title' => 'Multi Tag Article',
+            'slug' => 'multi-tag-article',
+            'content_markdown' => 'Content',
+            'content_html' => '<p>Content</p>',
+            'category' => 'tech',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        $article->tags()->attach([$tag1->id, $tag2->id, $tag3->id]);
+
+        $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->deleteJson("/api/articles/{$article->slug}");
+
+        // 모든 태그의 article_count가 1씩 감소해야 함
+        $this->assertEquals(4, $tag1->fresh()->article_count);
+        $this->assertEquals(2, $tag2->fresh()->article_count);
+        $this->assertEquals(0, $tag3->fresh()->article_count);
+    }
 }

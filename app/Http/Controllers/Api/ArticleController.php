@@ -10,6 +10,7 @@ use App\Application\Article\DeleteArticleUseCase;
 use App\Application\Article\LikeArticleUseCase;
 use App\Application\Article\UpdateArticleInput;
 use App\Application\Article\UpdateArticleUseCase;
+use App\Application\Tag\SyncArticleTagsService;
 use App\Domain\Core\Article\Exceptions\ArticleNotEditableException;
 use App\Domain\Core\Article\ValueObjects\Category;
 use App\Exceptions\Http\ForbiddenException;
@@ -22,7 +23,7 @@ use App\Infrastructure\Persistence\Eloquent\TagModel;
 use App\Infrastructure\Persistence\Eloquent\UserModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 final class ArticleController extends Controller
 {
@@ -30,7 +31,8 @@ final class ArticleController extends Controller
         private readonly CreateArticleUseCase $createArticleUseCase,
         private readonly UpdateArticleUseCase $updateArticleUseCase,
         private readonly DeleteArticleUseCase $deleteArticleUseCase,
-        private readonly LikeArticleUseCase $likeArticleUseCase
+        private readonly LikeArticleUseCase $likeArticleUseCase,
+        private readonly SyncArticleTagsService $syncArticleTagsService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -162,7 +164,7 @@ final class ArticleController extends Controller
         // Handle tags
         $tags = $request->validated('tags', []);
         if (! empty($tags)) {
-            $this->syncTags($articleModel, $tags);
+            $this->syncArticleTagsService->sync($articleModel, $tags);
             $articleModel->refresh();
             $articleModel->load('tags');
         }
@@ -196,7 +198,7 @@ final class ArticleController extends Controller
             // Handle tags
             $tags = $request->validated('tags');
             if ($tags !== null) {
-                $this->syncTags($articleModel, $tags);
+                $this->syncArticleTagsService->sync($articleModel, $tags);
                 $articleModel->refresh();
                 $articleModel->load('tags');
             }
@@ -219,15 +221,20 @@ final class ArticleController extends Controller
         /** @var UserModel $user */
         $user = $request->user();
 
-        // Decrement tag article counts before deletion
-        $articleModel = ArticleModel::where('slug', $slug)->with('tags')->first();
-        if ($articleModel) {
-            foreach ($articleModel->tags as $tag) {
-                $tag->decrementArticleCount();
-            }
-        }
+        DB::transaction(function () use ($user, $slug) {
+            // Delete the article first
+            $this->deleteArticleUseCase->execute($user->uuid, $slug);
 
-        $this->deleteArticleUseCase->execute($user->uuid, $slug);
+            // Decrement tag article counts after successful deletion
+            $articleModel = ArticleModel::withTrashed()
+                ->where('slug', $slug)
+                ->with('tags')
+                ->first();
+
+            if ($articleModel) {
+                $this->syncArticleTagsService->decrementCountsForArticle($articleModel);
+            }
+        });
 
         return response()->json([
             'message' => 'Article deleted successfully',
@@ -382,82 +389,5 @@ final class ArticleController extends Controller
         $characterCount = mb_strlen($text);
 
         return max(1, (int) ceil($characterCount / 500));
-    }
-
-    /**
-     * Sync tags for an article.
-     * Creates new tags if they don't exist, reuses existing ones.
-     *
-     * @param  array<string>  $tagNames
-     */
-    private function syncTags(ArticleModel $article, array $tagNames): void
-    {
-        $oldTagIds = $article->tags->pluck('id')->toArray();
-        $newTagIds = [];
-
-        foreach ($tagNames as $tagName) {
-            $tagName = trim($tagName);
-            if (empty($tagName)) {
-                continue;
-            }
-
-            // Find or create tag
-            $tag = TagModel::where('name', $tagName)->first();
-
-            if (! $tag) {
-                // Create new tag
-                $slug = $this->generateTagSlug($tagName);
-                $tag = TagModel::create([
-                    'uuid' => Str::uuid()->toString(),
-                    'name' => $tagName,
-                    'slug' => $slug,
-                    'article_count' => 0,
-                ]);
-            }
-
-            $newTagIds[] = $tag->id;
-        }
-
-        // Decrement count for removed tags
-        $removedTagIds = array_diff($oldTagIds, $newTagIds);
-        foreach ($removedTagIds as $tagId) {
-            $tag = TagModel::find($tagId);
-            if ($tag) {
-                $tag->decrementArticleCount();
-            }
-        }
-
-        // Increment count for added tags
-        $addedTagIds = array_diff($newTagIds, $oldTagIds);
-        foreach ($addedTagIds as $tagId) {
-            $tag = TagModel::find($tagId);
-            if ($tag) {
-                $tag->incrementArticleCount();
-            }
-        }
-
-        // Sync the relationship
-        $article->tags()->sync($newTagIds);
-    }
-
-    /**
-     * Generate a slug for a tag name.
-     * Supports Korean characters.
-     */
-    private function generateTagSlug(string $name): string
-    {
-        $slug = strtolower($name);
-        $slug = preg_replace('/[^a-z0-9가-힣]+/u', '-', $slug);
-        $slug = trim($slug, '-');
-
-        // Ensure uniqueness
-        $baseSlug = $slug;
-        $counter = 1;
-        while (TagModel::where('slug', $slug)->exists()) {
-            $slug = $baseSlug.'-'.$counter;
-            $counter++;
-        }
-
-        return $slug;
     }
 }
