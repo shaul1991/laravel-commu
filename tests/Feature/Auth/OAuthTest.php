@@ -126,6 +126,59 @@ final class OAuthTest extends TestCase
         $response->assertRedirect('/login?error=oauth_failed');
     }
 
+    public function test_keycloak_소셜_로그인_리다이렉트를_수행한다(): void
+    {
+        // Keycloak 설정
+        config([
+            'services.keycloak.client_id' => 'test-client',
+            'services.keycloak.client_secret' => 'test-secret',
+            'services.keycloak.redirect' => '/api/auth/oauth/keycloak/callback',
+            'services.keycloak.base_url' => 'https://keycloak.example.com',
+            'services.keycloak.realms' => 'test-realm',
+        ]);
+
+        $response = $this->get('/api/auth/oauth/keycloak/redirect');
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('keycloak.example.com', $response->headers->get('Location'));
+    }
+
+    public function test_새_사용자가_keycloak_로그인으로_가입할_수_있다(): void
+    {
+        $socialiteUser = Mockery::mock(SocialiteUser::class);
+        $socialiteUser->shouldReceive('getId')->andReturn('keycloak-user-123');
+        $socialiteUser->shouldReceive('getEmail')->andReturn('keycloak@example.com');
+        $socialiteUser->shouldReceive('getName')->andReturn('Keycloak User');
+        $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
+        $socialiteUser->shouldReceive('getNickname')->andReturn('keycloakuser');
+        $socialiteUser->token = 'fake-keycloak-access-token';
+        $socialiteUser->refreshToken = 'fake-keycloak-refresh-token';
+        $socialiteUser->expiresIn = 3600;
+
+        $driver = Mockery::mock();
+        $driver->shouldReceive('stateless')->andReturnSelf();
+        $driver->shouldReceive('user')->andReturn($socialiteUser);
+
+        Socialite::shouldReceive('driver')
+            ->with('keycloak')
+            ->andReturn($driver);
+
+        $response = $this->get('/api/auth/oauth/keycloak/callback?code=valid-keycloak-code');
+
+        $response->assertOk();
+        $response->assertSee('localStorage.setItem', false);
+        $response->assertSee("window.location.href = '/'", false);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'keycloak@example.com',
+        ]);
+
+        $this->assertDatabaseHas('social_accounts', [
+            'provider' => 'keycloak',
+            'provider_id' => 'keycloak-user-123',
+        ]);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();

@@ -19,7 +19,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 final class OAuthController extends Controller
 {
-    private const SUPPORTED_PROVIDERS = ['google', 'github'];
+    private const SUPPORTED_PROVIDERS = ['google', 'github', 'keycloak'];
 
     public function redirect(string $provider): RedirectResponse
     {

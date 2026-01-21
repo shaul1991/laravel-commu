@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
+use SocialiteProviders\Keycloak\KeycloakExtendSocialite;
+use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +26,15 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configurePassport();
         $this->configureSentryUserContext();
+        $this->configureSocialiteProviders();
+    }
+
+    /**
+     * Configure Socialite Providers (Keycloak)
+     */
+    private function configureSocialiteProviders(): void
+    {
+        Event::listen(SocialiteWasCalled::class, KeycloakExtendSocialite::class);
     }
 
     /**

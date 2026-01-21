@@ -47,4 +47,12 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI', '/api/auth/oauth/github/callback'),
     ],
 
+    'keycloak' => [
+        'client_id' => env('KEYCLOAK_CLIENT_ID'),
+        'client_secret' => env('KEYCLOAK_CLIENT_SECRET'),
+        'redirect' => env('KEYCLOAK_REDIRECT_URI', '/api/auth/oauth/keycloak/callback'),
+        'base_url' => env('KEYCLOAK_BASE_URL'),
+        'realms' => env('KEYCLOAK_REALM', 'master'),
+    ],
+
 ];
