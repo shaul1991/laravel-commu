@@ -283,7 +283,7 @@ pipeline {
                     }
 
                     // Keycloak 환경변수 주입 (dev 환경)
-                    if (params.ENVIRONMENT == 'dev' && params.KEYCLOAK_CLIENT_SECRET?.trim()) {
+                    if (params.ENVIRONMENT == 'dev' && params.KEYCLOAK_CLIENT_SECRET?.toString()?.trim()) {
                         sh """
                             docker run --rm \
                                 -v ${env.DEPLOY_PATH}:/var/www/html \
