@@ -1,13 +1,13 @@
 # ==========================================
 # Caddy 통합 설정 (prod + dev)
-# blogs.shaul.link (prod)
-# dev-blogs.shaul.link (dev)
+# blogs.shaul.kr (prod)
+# dev-blogs.shaul.kr (dev)
 # ==========================================
 
 # 글로벌 설정
 {
     # 이메일 (Let's Encrypt 인증서용)
-    email admin@shaul.link
+    email admin@shaul.kr
 
     # HTTPS 자동 설정
     auto_https on
@@ -20,15 +20,15 @@
 }
 
 # ==========================================
-# Production: blogs.shaul.link
+# Production: blogs.shaul.kr
 # ==========================================
-blogs.shaul.link {
+blogs.shaul.kr {
     # 압축
     encode gzip zstd
 
     # 로그
     log {
-        output file /var/log/caddy/blogs.shaul.link.log
+        output file /var/log/caddy/blogs.shaul.kr.log
         format json
     }
 
@@ -93,20 +93,20 @@ blogs.shaul.link {
 }
 
 # www 리다이렉트 (prod)
-www.blogs.shaul.link {
-    redir https://blogs.shaul.link{uri} permanent
+www.blogs.shaul.kr {
+    redir https://blogs.shaul.kr{uri} permanent
 }
 
 # ==========================================
-# Development: dev-blogs.shaul.link
+# Development: dev-blogs.shaul.kr
 # ==========================================
-dev-blogs.shaul.link {
+dev-blogs.shaul.kr {
     # 압축
     encode gzip zstd
 
     # 로그
     log {
-        output file /var/log/caddy/dev-blogs.shaul.link.log
+        output file /var/log/caddy/dev-blogs.shaul.kr.log
         format json
     }
 
@@ -169,13 +169,13 @@ dev-blogs.shaul.link {
 }
 
 # www 리다이렉트 (dev)
-www.dev-blogs.shaul.link {
-    redir https://dev-blogs.shaul.link{uri} permanent
+www.dev-blogs.shaul.kr {
+    redir https://dev-blogs.shaul.kr{uri} permanent
 }
 
 # ==========================================
 # Jenkins 프록시 (내부 접근용, 선택사항)
 # ==========================================
-# jenkins.shaul.link {
+# jenkins.shaul.kr {
 #     reverse_proxy localhost:8888
 # }

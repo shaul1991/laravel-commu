@@ -498,7 +498,7 @@ pipeline {
                 def projectName = env.PROJECT_NAME ?: (params.ENVIRONMENT == 'prod' ? 'laravel-commu' : 'laravel-commu-dev')
                 def message = ""
                 def url = params.ENVIRONMENT == 'prod' ?
-                    'https://blogs.shaul.link' : 'https://dev-blogs.shaul.link'
+                    'https://blogs.shaul.kr' : 'https://dev-blogs.shaul.kr'
 
                 switch(params.ACTION) {
                     case 'deploy':
