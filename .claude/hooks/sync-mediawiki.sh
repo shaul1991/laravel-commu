@@ -9,9 +9,6 @@
 #   WIKI_PASS     - Bot 비밀번호 (Special:BotPasswords에서 생성)
 #   WIKI_PAGE     - 업데이트할 Wiki 페이지 제목
 #
-# 사용법:
-#   이 스크립트는 Claude Code SessionEnd hook에서 자동 호출됩니다.
-#
 
 set -e
 
@@ -40,8 +37,15 @@ trap cleanup EXIT
 # 환경 변수 검증
 if [[ -z "$WIKI_USER" || -z "$WIKI_PASS" ]]; then
     log_error "WIKI_USER 또는 WIKI_PASS가 설정되지 않았습니다."
-    exit 0  # hook 실패로 Claude Code 작업을 중단하지 않음
+    exit 0
 fi
+
+# JSON에서 토큰 추출 (python3 사용)
+extract_token() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | python3 -c "import sys,json; data=json.load(sys.stdin); print(data['query']['tokens']['${key}'])" 2>/dev/null
+}
 
 # 변경된 파일 목록 가져오기
 get_changed_files() {
@@ -67,7 +71,7 @@ get_login_token() {
         -b "$COOKIE_FILE" \
         "$WIKI_API")
 
-    echo "$result" | grep -oP '"logintoken"\s*:\s*"\K[^"]+' | sed 's/\\+/%2B/g'
+    extract_token "$result" "logintoken"
 }
 
 # Step 2: 로그인
@@ -76,16 +80,16 @@ wiki_login() {
     local result
 
     result=$(curl -fsSL -X POST \
-        --data-urlencode "action=login" \
-        --data-urlencode "lgname=$WIKI_USER" \
-        --data-urlencode "lgpassword=$WIKI_PASS" \
+        -d "action=login" \
+        -d "lgname=$WIKI_USER" \
+        -d "lgpassword=$WIKI_PASS" \
         --data-urlencode "lgtoken=$login_token" \
         -d "format=json" \
         -c "$COOKIE_FILE" \
         -b "$COOKIE_FILE" \
         "$WIKI_API")
 
-    if echo "$result" | grep -q '"result"\s*:\s*"Success"'; then
+    if echo "$result" | grep -q '"result":"Success"'; then
         return 0
     else
         log_error "로그인 실패: $result"
@@ -104,38 +108,10 @@ get_csrf_token() {
         -b "$COOKIE_FILE" \
         "$WIKI_API")
 
-    echo "$result" | grep -oP '"csrftoken"\s*:\s*"\K[^"]+' | sed 's/\\+/%2B/g'
+    extract_token "$result" "csrftoken"
 }
 
-# Step 4: 페이지 편집
-edit_page() {
-    local csrf_token="$1"
-    local page_title="$2"
-    local content="$3"
-    local summary="$4"
-
-    local result
-    result=$(curl -fsSL -X POST \
-        --data-urlencode "action=edit" \
-        --data-urlencode "title=$page_title" \
-        --data-urlencode "text=$content" \
-        --data-urlencode "summary=$summary" \
-        --data-urlencode "token=$csrf_token" \
-        -d "format=json" \
-        -d "bot=1" \
-        -c "$COOKIE_FILE" \
-        -b "$COOKIE_FILE" \
-        "$WIKI_API")
-
-    if echo "$result" | grep -q '"result"\s*:\s*"Success"'; then
-        return 0
-    else
-        log_error "편집 실패: $result"
-        return 1
-    fi
-}
-
-# 섹션 추가 (페이지 끝에 추가)
+# Step 4: 섹션 추가 (페이지 끝에 추가)
 append_section() {
     local csrf_token="$1"
     local page_title="$2"
@@ -144,10 +120,10 @@ append_section() {
 
     local result
     result=$(curl -fsSL -X POST \
-        --data-urlencode "action=edit" \
+        -d "action=edit" \
         --data-urlencode "title=$page_title" \
         --data-urlencode "appendtext=$section_text" \
-        --data-urlencode "summary=$summary" \
+        -d "summary=$summary" \
         --data-urlencode "token=$csrf_token" \
         -d "format=json" \
         -d "bot=1" \
@@ -155,7 +131,7 @@ append_section() {
         -b "$COOKIE_FILE" \
         "$WIKI_API")
 
-    if echo "$result" | grep -q '"result"\s*:\s*"Success"'; then
+    if echo "$result" | grep -q '"result":"Success"'; then
         return 0
     else
         log_error "섹션 추가 실패: $result"
@@ -210,7 +186,7 @@ main() {
     recent_commits=$(get_recent_commits)
 
     local update_content
-    update_content=$(cat <<EOF
+    update_content="
 
 == $timestamp ==
 '''프로젝트''': $project_name
@@ -223,9 +199,7 @@ $(echo "$changed_files" | sed 's/^/* /')
 $recent_commits
 </pre>
 
-----
-EOF
-)
+----"
 
     # 위키 페이지 업데이트
     log_info "페이지 업데이트 중: $WIKI_PAGE"
