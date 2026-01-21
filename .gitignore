@@ -34,3 +34,6 @@ Thumbs.db
 /tests/Browser/screenshots/
 /tests/Browser/source/
 .env.dusk.local
+
+# Claude Code local settings (contains secrets)
+.claude/settings.local.json

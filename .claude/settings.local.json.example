@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/config-schema.json",
+  "env": {
+    "WIKI_URL": "https://wiki.shaul.kr",
+    "WIKI_USER": "YourUsername@ClaudeCodeBot",
+    "WIKI_PASS": "your-bot-password-here",
+    "WIKI_PAGE": "Blogs/Changelog"
+  }
+}
