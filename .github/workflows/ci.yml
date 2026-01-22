@@ -312,7 +312,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Message:*\n${{ github.event.head_commit.message }}"
+                    "text": ${{ toJSON(format('*Message:*\n{0}', github.event.head_commit.message)) }}
                   }
                 },
                 {
@@ -407,7 +407,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Message:*\n${{ github.event.head_commit.message }}"
+                    "text": ${{ toJSON(format('*Message:*\n{0}', github.event.head_commit.message)) }}
                   }
                 },
                 {
@@ -489,7 +489,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*Message:*\n${{ github.event.head_commit.message }}"
+                    "text": ${{ toJSON(format('*Message:*\n{0}', github.event.head_commit.message)) }}
                   }
                 },
                 {
